@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
-import {View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, Modal, FlatList, Platform} from 'react-native';
-import { Desafio } from '../model/Desafio';
 
-export default function CriarDesafio({ navigation, desafios, setDesafios }) {
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, Modal, FlatList, Platform} from 'react-native';
+import { Desafio } from '../model/Desafio';
+import { v4 as uuidv4 } from 'uuid';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
+
+type Props = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'CriarDesafio'>;
+  desafios: Desafio[];
+  setDesafios: React.Dispatch<React.SetStateAction<Desafio[]>>;
+};
+
+export default function CriarDesafio({ navigation, desafios, setDesafios }: Props) {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('');
-
   const [tipoMeta, setTipoMeta] = useState('');
   const [unidade, setUnidade] = useState('');
   const [valorMeta, setValorMeta] = useState('');
@@ -14,10 +23,8 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
   const [duracao, setDuracao] = useState('');
   const [ehPersonalizavel, setEhPersonalizavel] = useState(true);
   const [ativo, setAtivo] = useState(true);
-
-  // Dropdown states de controle de modal
   const [modalVisible, setModalVisible] = useState(false);
-  const [currentDropdown, setCurrentDropdown] = useState(null);
+  const [currentDropdown, setCurrentDropdown] = useState<string | null>(null);
 
   const tipoMetaOptions = [
     { label: 'Mínimo', value: 'mínimo' },
@@ -37,12 +44,12 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
     { label: 'Mensal', value: 'mensal' },
   ];
 
-  const openDropdown = (field) => {
+  const openDropdown = (field: string) => {
     setCurrentDropdown(field);
     setModalVisible(true);
   };
 
-  const selectOption = (value) => {
+  const selectOption = (value: string) => {
     if (currentDropdown === 'tipoMeta') setTipoMeta(value);
     else if (currentDropdown === 'unidade') setUnidade(value);
     else if (currentDropdown === 'frequencia') setFrequencia(value);
@@ -57,7 +64,7 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
     return [];
   };
 
-  const getLabelByValue = (options, value) => {
+  const getLabelByValue = (options: { label: string; value: string }[], value: string) => {
     const opt = options.find((o) => o.value === value);
     return opt ? opt.label : 'Selecione...';
   };
@@ -67,6 +74,10 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
+
+    const hoje = new Date();
+    const fim = new Date();
+    fim.setDate(hoje.getDate() + parseInt(duracao));
 
     const novo = new Desafio(
       nome,
@@ -80,19 +91,12 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
       ehPersonalizavel,
       ativo
     );
+
+
     setDesafios([...desafios, novo]);
-
-    setNome('');
-    setDescricao('');
-    setCategoria('');
-    setTipoMeta('');
-    setUnidade('');
-    setValorMeta('');
-    setFrequencia('');
-    setDuracao('');
-    setEhPersonalizavel(true);
-    setAtivo(true);
-
+    setNome(''); setDescricao(''); setCategoria(''); setTipoMeta('');
+    setUnidade(''); setValorMeta(''); setFrequencia(''); setDuracao('');
+    setEhPersonalizavel(true); setAtivo(true);
     navigation.goBack();
   };
 
@@ -105,65 +109,26 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
         <Input label="Nome" value={nome} onChange={setNome} />
         <Input label="Descrição" value={descricao} onChange={setDescricao} />
         <Input label="Categoria" value={categoria} onChange={setCategoria} />
-
-        <DropdownCustom
-          label="Tipo de Meta"
-          value={tipoMeta}
-          onPress={() => openDropdown('tipoMeta')}
-          displayValue={getLabelByValue(tipoMetaOptions, tipoMeta)}
-        />
-
-        <DropdownCustom
-          label="Unidade"
-          value={unidade}
-          onPress={() => openDropdown('unidade')}
-          displayValue={getLabelByValue(unidadeOptions, unidade)}
-        />
-
-        <Input
-          label="Valor da Meta"
-          value={valorMeta}
-          onChange={setValorMeta}
-          keyboardType="numeric"
-        />
-
-        <DropdownCustom
-          label="Frequência"
-          value={frequencia}
-          onPress={() => openDropdown('frequencia')}
-          displayValue={getLabelByValue(frequenciaOptions, frequencia)}
-        />
-
-        <Input
-          label="Duração (dias)"
-          value={duracao}
-          onChange={setDuracao}
-          keyboardType="numeric"
-        />
-
+        <DropdownCustom label="Tipo de Meta" value={tipoMeta} onPress={() => openDropdown('tipoMeta')} displayValue={getLabelByValue(tipoMetaOptions, tipoMeta)} />
+        <DropdownCustom label="Unidade" value={unidade} onPress={() => openDropdown('unidade')} displayValue={getLabelByValue(unidadeOptions, unidade)} />
+        <Input label="Valor da Meta" value={valorMeta} onChange={setValorMeta} keyboardType='numeric' />
+        <DropdownCustom label="Frequência" value={frequencia} onPress={() => openDropdown('frequencia')} displayValue={getLabelByValue(frequenciaOptions, frequencia)} />
+        <Input label="Duração (dias)" value={duracao} onChange={setDuracao} keyboardType='numeric' />
         <SwitchRow label="Personalizável?" value={ehPersonalizavel} onValueChange={setEhPersonalizavel} />
         <SwitchRow label="Ativo?" value={ativo} onValueChange={setAtivo} />
-
         <TouchableOpacity style={styles.button} onPress={addDesafio}>
           <Text style={styles.buttonText}>Salvar Desafio</Text>
         </TouchableOpacity>
       </ScrollView>
 
       <Modal transparent visible={modalVisible} animationType="fade">
-        <TouchableOpacity
-          style={styles.modalBackground}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
-        >
+        <TouchableOpacity style={styles.modalBackground} activeOpacity={1} onPress={() => setModalVisible(false)}>
           <View style={styles.modalContainer}>
             <FlatList
               data={getOptions()}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.option}
-                  onPress={() => selectOption(item.value)}
-                >
+                <TouchableOpacity style={styles.option} onPress={() => selectOption(item.value)}>
                   <Text style={styles.optionText}>{item.label}</Text>
                 </TouchableOpacity>
               )}
@@ -175,7 +140,7 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }) {
   );
 }
 
-function Input({ label, value, onChange, keyboardType = 'default' }) {
+function Input({ label, value, onChange, keyboardType = 'default' }: { label: string; value: string; onChange: (text: string) => void; keyboardType?: 'default' | 'numeric' }) {
   return (
     <View style={{ marginBottom: 12 }}>
       <Text style={styles.label}>{label}</Text>
@@ -191,7 +156,7 @@ function Input({ label, value, onChange, keyboardType = 'default' }) {
   );
 }
 
-function DropdownCustom({ label, value, onPress, displayValue }) {
+function DropdownCustom({ label, value, onPress, displayValue }: { label: string; value: string; onPress: () => void; displayValue: string }) {
   return (
     <View style={{ marginBottom: 12 }}>
       <Text style={styles.label}>{label}</Text>
@@ -202,7 +167,7 @@ function DropdownCustom({ label, value, onPress, displayValue }) {
   );
 }
 
-function SwitchRow({ label, value, onValueChange }) {
+function SwitchRow({ label, value, onValueChange }: { label: string; value: boolean; onValueChange: (val: boolean) => void }) {
   return (
     <View style={styles.switchRow}>
       <Text style={styles.label}>{label}</Text>
@@ -281,7 +246,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-
   modalBackground: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.25)',
