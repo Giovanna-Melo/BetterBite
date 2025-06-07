@@ -1,66 +1,42 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { Desafio } from '../model/Desafio';
+import { DesafioUsuario } from '../model/DesafioUsuario';
+import { DesafioController } from '../controllers/DesafioController';
 
-type RegistroDesafio = {
-  idDesafio: string;
-  data: string;
-  cumpriuMeta: boolean;
-  observacao?: string;
+interface Props {
+  desafios: Desafio[];
+  registros: DesafioUsuario[];
+}
+
+type RouteParams = {
+  DetalhesDesafio: {
+    idDesafio: string;
+  };
 };
 
-type Props = {
-  route: { params: { idDesafio: string } };
-  navigation: any;
-  desafios: { id: string; nome: string }[];
-  registros: RegistroDesafio[];
-};
+export default function DetalhesDesafio({ desafios, registros }: Props) {
+  const route = useRoute<RouteProp<RouteParams, 'DetalhesDesafio'>>();
+  const controller = new DesafioController(desafios, registros);
+  const desafio = controller.buscarPorId(route.params.idDesafio);
 
-export default function DetalhesDesafio({ route, navigation, desafios, registros }: Props) {
-  const { idDesafio } = route.params;
-
-  const desafio = desafios.find((d) => d.id === idDesafio);
-  const checkins = registros.filter((r) => r.idDesafio === idDesafio);
+  if (!desafio) {
+    return <Text style={styles.title}>Desafio não encontrado</Text>;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📊 Check-ins do desafio</Text>
-      <Text style={styles.subtitle}>{desafio?.nome || 'Desafio sem nome'}</Text>
-
-      <FlatList
-        data={checkins}
-        keyExtractor={(_, index) => index.toString()}
-        ListEmptyComponent={<Text style={styles.empty}>Nenhum check-in ainda.</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text>📅 {item.data}</Text>
-            <Text>{item.cumpriuMeta ? '✅ Cumpriu a meta' : '❌ Não cumpriu'}</Text>
-            {item.observacao ? <Text>📝 {item.observacao}</Text> : null}
-          </View>
-        )}
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('CheckinDesafio', { idDesafio })}
-      >
-        <Text style={styles.buttonText}>+ Fazer Check-in</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>{desafio.nome}</Text>
+      <Text style={styles.desc}>{desafio.descricao}</Text>
+      <Text style={styles.progresso}>Progresso: {controller.progressoPorDesafio(desafio.id)}%</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, flex: 1, backgroundColor: '#fff' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#4CAF50' },
-  subtitle: { fontSize: 18, marginBottom: 20 },
-  item: { padding: 10, marginBottom: 10, backgroundColor: '#e8f5e9', borderRadius: 8 },
-  empty: { textAlign: 'center', marginVertical: 20, color: '#777' },
-  button: {
-    backgroundColor: '#4CAF50',
-    padding: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
+  container: { flex: 1, padding: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  desc: { fontSize: 16, marginBottom: 8 },
+  progresso: { fontSize: 16, color: '#333' }
 });

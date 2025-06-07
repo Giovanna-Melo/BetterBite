@@ -1,74 +1,82 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Button } from 'react-native';
+import { Desafio } from '../model/Desafio';
+import { DesafioUsuario } from '../model/DesafioUsuario';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native';
 
-export default function ListaDesafios({ navigation, desafios, setDesafios, registros }) {
-  const delDesafio = (nome) => {
-    setDesafios(desafios.filter(d => d.nome !== nome));
-  };
+
+
+
+interface Props {
+  desafios: Desafio[];
+  registros: DesafioUsuario[];
+}
+
+type RootStackParamList = {
+  DetalhesDesafio: { idDesafio: string };
+  CriarDesafio: undefined;
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+export default function ListaDesafios({ desafios }: Props) {
+  const navigation = useNavigation<NavigationProp>();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>🎯 BetterBite</Text>
-      <Text style={styles.subtitulo}>📋 Meus Desafios</Text>
-
-      <ScrollView style={styles.list}>
-        {desafios.length === 0 && (
-          <Text style={{textAlign: 'center', marginVertical: 20, color: '#777'}}>Nenhum desafio criado.</Text>
-        )}
-
-        {desafios.map((d, i) => (
-          <View key={i} style={styles.card}>
-            <Text style={styles.cardTitle}>{d.nome}</Text>
-            <Text style={styles.cardText}>{d.descricao}</Text>
-            <Text style={styles.cardText}>Categoria: {d.categoria}</Text>
-            <Text style={styles.cardText}>Meta: {d.tipoMeta} de {d.valorMeta} {d.unidade}</Text>
-            <Text style={styles.cardText}>Frequência: {d.frequencia}</Text>
-            <Text style={styles.cardText}>Duração: {d.duracao} dias</Text>
-            <Text style={styles.cardText}>Personalizável: {d.ehPersonalizavel ? 'Sim' : 'Não'}</Text>
-            <Text style={styles.cardText}>Ativo: {d.ativo ? 'Sim' : 'Não'}</Text>
-
-            <TouchableOpacity style={styles.deleteButton} onPress={() => delDesafio(d.nome)}>
-              <Text style={styles.deleteButtonText}>Excluir</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.verCheckinsButton}
-              onPress={() => navigation.navigate('DetalhesDesafio', { idDesafio: d.id })}
-            >
-              <Text style={styles.verCheckinsButtonText}>📊 Ver Check-ins</Text>
-            </TouchableOpacity>
+      <Text style={styles.title}>🎯 Desafios Ativos</Text>
+      <FlatList
+        data={desafios}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.itemBox}>
+            <Text style={styles.itemTitle}>{item.nome}</Text>
+            <Button title="Ver detalhes" onPress={() => navigation.navigate('DetalhesDesafio', { idDesafio: item.id })} />
           </View>
-        ))}
-      </ScrollView>
-
+        )}
+      />
       <TouchableOpacity
-        style={styles.button}
+        style={styles.fab}
         onPress={() => navigation.navigate('CriarDesafio')}
       >
-        <Text style={styles.buttonText}>+ Novo Desafio</Text>
+        <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 45, paddingHorizontal: 20, backgroundColor: '#fdfdfd' },
-  titulo: { fontSize: 28, fontWeight: 'bold', color: '#4CAF50', textAlign: 'center', marginBottom: 4 },
-  subtitulo: { fontSize: 20, fontWeight: '600', color: '#333', marginVertical: 10 },
-  list: { marginBottom: 20 },
-  card: { backgroundColor: '#e8f5e9', padding: 15, borderRadius: 12, marginBottom: 12 },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#2e7d32', marginBottom: 4 },
-  cardText: { color: '#333', marginBottom: 2 },
-  deleteButton: {
-    marginTop: 8, backgroundColor: '#e53935', padding: 10, borderRadius: 8, alignItems: 'center',
+  container: { flex: 1, padding: 16, backgroundColor: '#f9f9f9' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
+  itemBox: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    elevation: 1
   },
-  deleteButtonText: { color: '#fff', fontWeight: 'bold' },
-  button: {
-    backgroundColor: '#4CAF50', padding: 14, borderRadius: 10, marginBottom: 20, alignItems: 'center',
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8
   },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
-  verCheckinsButton: {
-    marginTop: 6, backgroundColor: '#2196F3', padding: 10, borderRadius: 8, alignItems: 'center',
-  },
-  verCheckinsButtonText: { color: '#fff', fontWeight: 'bold' },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#4CAF50',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+  }
 });
