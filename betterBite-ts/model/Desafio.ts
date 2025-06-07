@@ -1,4 +1,8 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export class Desafio {
+  public readonly id: string;
+
   constructor(
     public nome: string,
     public descricao: string,
@@ -10,5 +14,7 @@ export class Desafio {
     public duracao: number,
     public ehPersonalizavel: boolean,
     public ativo: boolean
-  ) {}
+  ) {
+    this.id = uuidv4();
+  }
 }
