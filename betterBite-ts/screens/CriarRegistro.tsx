@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; 
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert,
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
 } from 'react-native';
 
 import { RegistroDesafio } from '../model/RegistroDesafio';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../App';
 
 type Props = {
@@ -61,10 +68,24 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.titulo}>📋 Criar Registro</Text>
+    <SafeAreaView style={styles.safeArea}>
+      {/* Header com botão de voltar */}
+      <View style={styles.detailHeader}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        > <Ionicons name="arrow-back" size={28} color="#333" />
+          <Text style={styles.backButtonText}> Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Criar Registro</Text>
+        <View style={{ width: 70 }} /> {/* espaço para balancear layout */}
+      </View>
 
-      <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.scrollableContentWrapper}
+        contentContainerStyle={styles.listContentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <Input
           label="Data (YYYY-MM-DD)"
           value={data}
@@ -91,11 +112,11 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
           style={{ height: 100, textAlignVertical: 'top' }}
         />
 
-        <TouchableOpacity style={styles.button} onPress={salvarRegistro}>
-          <Text style={styles.buttonText}>Salvar Registro</Text>
+        <TouchableOpacity style={styles.botao} onPress={salvarRegistro}>
+          <Text style={styles.botaoTexto}>Salvar Registro</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -117,7 +138,7 @@ function Input({
   placeholder?: string;
 }) {
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 14 }}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
@@ -125,7 +146,7 @@ function Input({
         keyboardType={keyboardType}
         style={[styles.input, style]}
         placeholder={placeholder}
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#999"
         multiline={multiline}
       />
     </View>
@@ -133,48 +154,75 @@ function Input({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    paddingTop: 45,
-    paddingHorizontal: 20,
-    backgroundColor: '#fdfdfd',
+    backgroundColor: '#F9F9F9',
   },
-  titulo: {
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: '#333',
+    marginLeft: 5,
+  },
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#333',
     textAlign: 'center',
-    marginBottom: 20,
   },
-  form: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 10,
-    elevation: 3,
+  scrollableContentWrapper: {
+    flex: 1,
+  },
+  listContentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 16,
+    borderColor: '#E0E0E0',
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    color: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    width: '100%',
   },
   label: {
-    fontWeight: '500',
+    fontSize: 15,
+    color: '#555',
     marginBottom: 6,
-    color: '#333',
+    fontWeight: '600',
   },
-  button: {
-    backgroundColor: '#4CAF50',
-    padding: 14,
-    borderRadius: 10,
-    marginTop: 24,
+  botao: {
+    backgroundColor: '#8BC34A',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 28,
     alignItems: 'center',
   },
-  buttonText: {
+  botaoTexto: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 17,
   },
 });

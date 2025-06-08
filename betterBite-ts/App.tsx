@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import ListaDesafios from './screens/ListaDesafios';
 import CriarDesafio from './screens/CriarDesafio';
-import CheckinDesafio from './screens/CheckinDesafio';
 import DetalhesDesafio from './screens/DetalhesDesafio';
 import ReceitasScreen from './screens/ReceitasScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -52,14 +51,6 @@ export default function App() {
               {...props}
               desafios={desafios}
               setDesafios={setDesafios}
-            />
-          )}
-        </Stack.Screen>
-        <Stack.Screen name="CheckinDesafio">
-          {(props) => (
-            <CheckinDesafio
-              {...props}
-              desafios={desafios}
             />
           )}
         </Stack.Screen>
