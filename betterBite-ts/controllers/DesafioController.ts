@@ -4,17 +4,30 @@ import { RegistroDesafio } from '../model/RegistroDesafio';
 
 export class DesafioController {
   constructor(
-    private desafios: Desafio[],
-    private registrosUsuario: DesafioUsuario[],
+    private desafiosGerais: Desafio[],
+    private desafiosUsuarios: DesafioUsuario[],
     private registrosDesafio: RegistroDesafio[]
   ) {}
 
   buscarPorId(id: string): Desafio | undefined {
-    return this.desafios.find(d => d.id === id);
+    return this.desafiosGerais.find(d => d.id === id);
   }
 
   registrosDoDesafio(idDesafio: string): RegistroDesafio[] {
     return this.registrosDesafio.filter(r => r.idDesafio === idDesafio);
+  }
+
+  metaDiariaAtingida(desafioId: string, consumoNoDia: number): boolean {
+    const desafio = this.buscarPorId(desafioId);
+    if (!desafio) return false;
+
+    if (desafio.tipoMeta === 'quantidade' || desafio.tipoMeta === 'tempo') {
+        return consumoNoDia >= desafio.valorMeta;
+    }
+    if (desafio.tipoMeta === 'boolean') {
+        return consumoNoDia > 0;
+    }
+    return false;
   }
 
   progressoPorDesafio(idDesafio: string): number {
@@ -23,22 +36,26 @@ export class DesafioController {
 
     const registros = this.registrosDoDesafio(idDesafio);
 
-    const dias = new Map<string, number>();
+    // Mapeia registros por data para somar o consumo diário
+    const consumoDiarioMap = new Map<string, number>();
 
     registros.forEach(reg => {
-      const dataStr = reg.data.toISOString().split('T')[0]; // "2025-06-07"
-      const total = dias.get(dataStr) ?? 0;
-      dias.set(dataStr, total + reg.consumo);
+      const dataStr = reg.data.toISOString().split('T')[0]; // "yyyy-mm-dd"
+      const total = consumoDiarioMap.get(dataStr) ?? 0;
+      consumoDiarioMap.set(dataStr, total + reg.consumo);
     });
 
-    let diasComMeta = 0;
-    dias.forEach(totalConsumo => {
-      if (totalConsumo >= desafio.valorMeta) diasComMeta++;
+    let diasComMetaAtingida = 0;
+    consumoDiarioMap.forEach((totalConsumoNoDia) => {
+      if (this.metaDiariaAtingida(desafio.id, totalConsumoNoDia)) {
+        diasComMetaAtingida++;
+      }
     });
 
-    const totalDias = dias.size;
-    if (totalDias === 0) return 0;
+    const totalDiasComRegistros = consumoDiarioMap.size;
+    
+    if (totalDiasComRegistros === 0) return 0;
 
-    return Math.round((diasComMeta / totalDias) * 100);
+    return Math.round((diasComMetaAtingida / totalDiasComRegistros) * 100);
   }
 }

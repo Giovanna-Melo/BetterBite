@@ -1,7 +1,4 @@
 import { Usuario } from '../model/Usuario';
-import { v4 as uuidv4 } from 'uuid';
-
-export const usuarioIds = [uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4()];
 
 export const usuariosMock: Usuario[] = [
   new Usuario('Beatriz Costa', 'bea@example.com', 'hash1', new Date('2000-01-01'), 'feminino', 60, 165, ['lactose']),
@@ -12,3 +9,5 @@ export const usuariosMock: Usuario[] = [
   new Usuario('Alexandre Nero', 'alexandre@example.com', 'hash6', new Date('1997-06-06'), 'masculino', 70, 170, []),
   new Usuario('Susana Vieira', 'susana@example.com', 'hash7', new Date('1996-07-07'), 'feminino', 65, 168, ['amendoim'])
 ];
+
+export const usuarioIds = usuariosMock.map(u => u.id);

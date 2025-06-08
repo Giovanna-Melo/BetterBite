@@ -1,14 +1,5 @@
-import React, { useState } from 'react'; 
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 
 import { RegistroDesafio } from '../model/RegistroDesafio';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,8 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../App';
 
 type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'CriarRegistroDesafio'>;
-  route: RouteProp<RootStackParamList, 'CriarRegistroDesafio'>;
+  navigation: NativeStackNavigationProp<RootStackParamList, keyof RootStackParamList>;
+  route: RouteProp<RootStackParamList, 'CheckinDesafio' | 'CriarRegistroDesafio'>;
   registrosDesafio: RegistroDesafio[];
   setRegistrosDesafio: React.Dispatch<React.SetStateAction<RegistroDesafio[]>>;
 };
@@ -59,6 +50,7 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
     );
 
     setRegistrosDesafio([...registrosDesafio, novoRegistro]);
+    Alert.alert('Sucesso', 'Registro salvo com sucesso!');
 
     setData('');
     setConsumo('');
@@ -69,16 +61,22 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header com botão de voltar */}
       <View style={styles.detailHeader}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-        > <Ionicons name="arrow-back" size={28} color="#333" />
-          <Text style={styles.backButtonText}> Voltar</Text>
+        >
+          <Ionicons name="arrow-back" size={28} color="#333" />
+          <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Criar Registro</Text>
-        <View style={{ width: 70 }} /> {/* espaço para balancear layout */}
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainer}>
+          <Image
+            source={require('../assets/better-bite-logo.png')}
+            style={styles.appLogoMassive}
+            accessibilityLabel="BetterBite Logo"
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -91,7 +89,7 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
           value={data}
           onChange={setData}
           placeholder="Ex: 2025-06-07"
-          keyboardType="numeric"
+          keyboardType="default"
         />
 
         <Input
@@ -107,7 +105,7 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
           value={observacao}
           onChange={setObservacao}
           multiline
-          numberOfLines={4}
+          numberOfLines={4} 
           placeholder="Digite uma observação"
           style={{ height: 100, textAlignVertical: 'top' }}
         />
@@ -128,6 +126,7 @@ function Input({
   multiline = false,
   style = {},
   placeholder = '',
+  numberOfLines, 
 }: {
   label: string;
   value: string;
@@ -136,6 +135,7 @@ function Input({
   multiline?: boolean;
   style?: any;
   placeholder?: string;
+  numberOfLines?: number; 
 }) {
   return (
     <View style={{ marginBottom: 14 }}>
@@ -148,6 +148,7 @@ function Input({
         placeholder={placeholder}
         placeholderTextColor="#999"
         multiline={multiline}
+        numberOfLines={numberOfLines} 
       />
     </View>
   );
@@ -183,6 +184,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
+    flex: 1,
+    marginRight: 20,
+  },
+  appLogoContainer: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    zIndex: 1,
+  },
+  appLogoMassive: {
+    width: 350, 
+    height: 120, 
+    resizeMode: 'contain',
   },
   scrollableContentWrapper: {
     flex: 1,
