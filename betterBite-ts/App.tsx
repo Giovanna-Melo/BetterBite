@@ -8,10 +8,14 @@ import CheckinDesafio from './screens/CheckinDesafio';
 import DetalhesDesafio from './screens/DetalhesDesafio';
 import ReceitasScreen from './screens/ReceitasScreen';
 import HomeScreen from './screens/HomeScreen';
+import CriarRegistro from './screens/CriarRegistro';
 
 import { desafiosMock } from './mocks/desafioMock';
 import { desafiosUsuariosMock } from './mocks/desafioUsuarioMock';
+import { registrosDesafioMock } from './mocks/registroDesafioMock';
+
 import { Desafio } from './model/Desafio';
+import { RegistroDesafio } from './model/RegistroDesafio';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -20,12 +24,14 @@ export type RootStackParamList = {
   CheckinDesafio: undefined;
   DetalhesDesafio: { idDesafio: string };
   Receitas: undefined;
+  CriarRegistroDesafio: { idDesafio: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [desafios, setDesafios] = useState<Desafio[]>(desafiosMock);
+  const [registrosDesafio, setRegistrosDesafio] = useState<RegistroDesafio[]>(registrosDesafioMock);
 
   return (
     <NavigationContainer>
@@ -63,10 +69,20 @@ export default function App() {
               {...props}
               desafios={desafios}
               registros={desafiosUsuariosMock}
+              registrosDesafio={registrosDesafio}
             />
           )}
         </Stack.Screen>
         <Stack.Screen name="Receitas" component={ReceitasScreen} />
+        <Stack.Screen name="CriarRegistroDesafio">
+          {(props) => (
+            <CriarRegistro
+              {...props}
+              registrosDesafio={registrosDesafio}
+              setRegistrosDesafio={setRegistrosDesafio}
+            />
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );
