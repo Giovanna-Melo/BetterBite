@@ -9,8 +9,9 @@ import DetalhesDesafio from './screens/DetalhesDesafio';
 import ReceitasScreen from './screens/ReceitasScreen';
 import HomeScreen from './screens/HomeScreen';
 
+import { desafiosMock } from './mocks/desafioMock';
+import { desafiosUsuariosMock } from './mocks/desafioUsuarioMock';
 import { Desafio } from './model/Desafio';
-
 
 export type RootStackParamList = {
   Home: undefined;
@@ -21,41 +22,24 @@ export type RootStackParamList = {
   Receitas: undefined;
 };
 
-export type RegistroDesafio = {
-  idDesafio: string;
-  data: string;
-  cumpriuMeta: boolean;
-  observacao?: string;
-};
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [desafios, setDesafios] = useState<Desafio[]>([]);
-  const [registros, setRegistros] = useState<RegistroDesafio[]>([]);
-
-  const adicionarRegistro = (registro: RegistroDesafio) => {
-    setRegistros((prev) => [...prev, registro]);
-  };
+  const [desafios, setDesafios] = useState<Desafio[]>(desafiosMock);
 
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Home">
-          {(props) => <HomeScreen {...props} />}
-        </Stack.Screen>
-
+        <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ListaDesafios">
           {(props) => (
             <ListaDesafios
               {...props}
               desafios={desafios}
-              setDesafios={setDesafios}
-              registros={registros}
+              registros={desafiosUsuariosMock}
             />
           )}
         </Stack.Screen>
-
         <Stack.Screen name="CriarDesafio">
           {(props) => (
             <CriarDesafio
@@ -65,29 +49,24 @@ export default function App() {
             />
           )}
         </Stack.Screen>
-
         <Stack.Screen name="CheckinDesafio">
           {(props) => (
             <CheckinDesafio
               {...props}
               desafios={desafios}
-              adicionarRegistro={adicionarRegistro}
             />
           )}
         </Stack.Screen>
-
         <Stack.Screen name="DetalhesDesafio">
           {(props) => (
             <DetalhesDesafio
               {...props}
               desafios={desafios}
-              registros={registros}
+              registros={desafiosUsuariosMock}
             />
           )}
         </Stack.Screen>
-
         <Stack.Screen name="Receitas" component={ReceitasScreen} />
-        
       </Stack.Navigator>
     </NavigationContainer>
   );
