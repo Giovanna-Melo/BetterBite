@@ -13,6 +13,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { usuariosMock } from "../mocks/usuarioMock";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditarUsuario"> & {
   usuario: Usuario;
@@ -30,12 +31,11 @@ export default function EditarUsuarioScreen({
   const [restricoes, setRestricoes] = useState(
     usuario.restricoesAlimentares.join(", ")
   );
-
   const salvarAlteracoes = async () => {
     try {
       const usuarioAtualizado = new Usuario(
         nome,
-        usuario.email, // email fixo
+        usuario.email,
         usuario.senhaHash,
         usuario.dataNascimento,
         usuario.genero,
@@ -44,6 +44,7 @@ export default function EditarUsuarioScreen({
         restricoes.split(",").map((r) => r.trim())
       );
 
+      // Atualiza AsyncStorage
       const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
       let usuarios: Usuario[] = usuariosData ? JSON.parse(usuariosData) : [];
 
@@ -55,13 +56,20 @@ export default function EditarUsuarioScreen({
         "usuariosCadastrados",
         JSON.stringify(usuarios)
       );
-
       await AsyncStorage.setItem(
         "usuarioLogado",
         JSON.stringify(usuarioAtualizado)
       );
-
       setUsuario(usuarioAtualizado);
+
+      // Atualiza o mock em memória
+      const indexMock = usuariosMock.findIndex(
+        (u) => u.email === usuario.email
+      );
+      if (indexMock !== -1) {
+        usuariosMock[indexMock] = usuarioAtualizado;
+      }
+
       Alert.alert("Sucesso", "Dados atualizados!");
       navigation.goBack();
     } catch (error) {
