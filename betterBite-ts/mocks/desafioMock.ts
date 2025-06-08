@@ -1,7 +1,4 @@
 import { Desafio } from '../model/Desafio';
-import { v4 as uuidv4 } from 'uuid';
-
-export const desafioIds = [uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4(), uuidv4()];
 
 export const desafiosMock: Desafio[] = [
   new Desafio('3L de Água por Dia', 'Desafio geral para manter hidratação ideal.', 'agua', 'quantidade', 'litros', 3, 'diario', 7, false, true),
@@ -16,3 +13,5 @@ export const desafiosMock: Desafio[] = [
   new Desafio('Chá antes de Dormir', 'Inclua uma xícara de chá calmante (ex: camomila) à noite.', 'refeicoes', 'frequencia', 'vezes', 1, 'diario', 5, false, true),
   new Desafio('Prepare sua Própria Refeição', 'Cozinhe sua própria refeição pelo menos 1 vez ao dia.', 'refeicoes', 'frequencia', 'vezes', 1, 'diario', 7, false, true)
 ];
+
+export const desafioIds = desafiosMock.map(d => d.id);

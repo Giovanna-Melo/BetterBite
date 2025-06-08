@@ -1,8 +1,6 @@
-
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, Modal, FlatList, Platform} from 'react-native';
 import { Desafio } from '../model/Desafio';
-import { v4 as uuidv4 } from 'uuid';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 

@@ -6,7 +6,7 @@ export class RegistroDesafio {
   constructor(
     public idDesafio: string,  // ID do desafio associado
     public data: Date,       // ex: '2025-06-07'
-    public cumpriuMeta: boolean,
+    public consumo: number,
     public observacao?: string
   ) {
     this.id = uuidv4();
