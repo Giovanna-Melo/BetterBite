@@ -1,168 +1,128 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Image,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../App";
-import { Usuario } from "../model/Usuario";
-import { CommonActions } from "@react-navigation/native";
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar, } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type Props = NativeStackScreenProps<RootStackParamList, "Home"> & {
-  usuario: Usuario | null;
-  setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>;
+import HomeSideBar from '../components/HomeSideBar';
+import NotificacaoCarousel from '../components/NotificacaoCarousel';
+import DesafiosUsuarioList from '../components/DesafiosUsuarioList';
+
+import { Usuario } from '../model/Usuario';
+import { desafiosUsuariosMock } from '../mocks/desafioUsuarioMock';
+import { desafiosMock } from '../mocks/desafioMock';
+import { notificacoesMock } from '../mocks/notificacaoMock';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
+  usuario: Usuario;
+  setUsuario: (usuario: Usuario | null) => void;
 };
 
 export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
-  // Confirmação e logout + reset da navegação para Login
-  const handleLogout = () => {
+  const [activeMenu, setActiveMenu] = useState<'desafios' | 'receitas' | null>(null);
+
+  const desafiosDoUsuario = desafiosUsuariosMock.filter(
+    (du) => du.usuarioId === usuario.id
+  );
+
+  const notificacoesNaoLidas = notificacoesMock.filter(
+    (notif) => notif.usuarioId === usuario.id && !notif.lida
+  ).sort((a, b) => b.horarioAgendado.getTime() - a.horarioAgendado.getTime());
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("usuarioLogado");
     setUsuario(null);
-    console.log("Logout: setUsuario(null) chamado");
   };
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require("../assets/better-bite-logo.png")}
-        style={styles.logo}
-        accessibilityLabel="Logo BetterBite"
-      />
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F8F8" />
+      <View style={styles.container}>
+        <HomeSideBar
+          usuario={usuario}
+          setUsuario={setUsuario}
+          navigation={navigation}
+          activeMenu={activeMenu}
+          setActiveMenu={setActiveMenu}
+          onLogout={handleLogout}
+        />
 
-      <View style={styles.header}>
-        <Text style={styles.title}>BetterBite</Text>
-        <Text style={styles.subtitle}>Um dia de cada vez 🥗</Text>
-      </View>
-
-      <View style={styles.content}>
-        {usuario ? (
-          <>
-            <Text style={styles.welcome}>Olá, {usuario.nome} 👋</Text>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate("ListaDesafios")}
-              activeOpacity={0.7}
-            >
+        <ScrollView style={styles.mainContent} showsVerticalScrollIndicator={true}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={() => navigation.navigate('Home')}>
               <Image
-                source={require("../assets/desafios-logo.png")}
-                style={styles.buttonIcon}
+                source={require('../assets/better-bite-logo.png')}
+                style={styles.appLogoMassive}
+                accessibilityLabel="BetterBite Logo"
               />
-              <Text style={styles.buttonText}>Meus Desafios</Text>
             </TouchableOpacity>
+          </View>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate("Receitas")}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={require("../assets/receitas-logo.png")}
-                style={styles.buttonIcon}
-              />
-              <Text style={styles.buttonText}>Explorar Receitas</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate("EditarUsuario")}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.buttonText}>Editar Usuario</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.logoutButton]}
-              onPress={handleLogout}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.buttonText}>Logout</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate("Login")}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
+          <NotificacaoCarousel notificacoes={notificacoesNaoLidas} />
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate("CadastrarUsuario")}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.buttonText}>Cadastrar Usuário</Text>
-            </TouchableOpacity>
-          </>
-        )}
+          <DesafiosUsuarioList
+            desafiosDoUsuario={desafiosDoUsuario}
+            desafiosGerais={desafiosMock}
+            navigation={navigation}
+          />
+
+          <TouchableOpacity
+            style={styles.createChallengeButton}
+            onPress={() => navigation.navigate('CriarDesafio')}
+          >
+            <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.createChallengeButtonText}>Criar Novo Desafio</Text>
+          </TouchableOpacity>
+
+        </ScrollView>
       </View>
-
-      <Text style={styles.footerText}>© 2025 - em desenvolvimento</Text>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+  },
   container: {
     flex: 1,
-    justifyContent: "space-between",
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    backgroundColor: "#f8f8f8",
+    flexDirection: 'row',
   },
-  logo: { width: 150, height: 150, resizeMode: "contain", alignSelf: "center" },
-  header: {
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-    position: "relative",
-    width: "100%",
-  },
-  title: { fontSize: 28, fontWeight: "bold", color: "#4CAF50" },
-  subtitle: { fontSize: 14, color: "#666", marginTop: 4 },
-  userButton: { position: "absolute", right: 0, top: 10 },
-  content: {
-    alignItems: "center",
+  mainContent: {
     flex: 1,
-    justifyContent: "center",
-    width: "100%",
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  welcome: { fontSize: 18, marginBottom: 20, color: "#333" },
-  button: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+  headerContent: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+    appLogoMassive: { 
+    width: 350, 
+    height: 120, 
+    resizeMode: 'contain',
+  },
+  createChallengeButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
     borderRadius: 15,
-    marginVertical: 10,
-    width: "80%",
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    marginTop: 30,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
     elevation: 5,
   },
-  logoutButton: { backgroundColor: "#E53935" },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  createChallengeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
     marginLeft: 10,
-  },
-  buttonIcon: { width: 30, height: 30, tintColor: "#fff" },
-  footerText: {
-    fontSize: 14,
-    color: "#888",
-    textAlign: "center",
-    paddingBottom: 10,
   },
 });
