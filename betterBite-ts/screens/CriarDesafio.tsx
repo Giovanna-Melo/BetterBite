@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, Modal, FlatList, Platform} from 'react-native';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Switch,
+  TextInput,
+  Modal,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Alert
+} from 'react-native';
 import { Desafio } from '../model/Desafio';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../App';
 
 type Props = {
@@ -28,14 +43,12 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
     { label: 'Mínimo', value: 'mínimo' },
     { label: 'Máximo', value: 'máximo' },
   ];
-
   const unidadeOptions = [
     { label: 'Gramas (g)', value: 'g' },
     { label: 'Litros (l)', value: 'l' },
     { label: 'Unidades', value: 'unidade' },
     { label: 'Porções', value: 'porção' },
   ];
-
   const frequenciaOptions = [
     { label: 'Diária', value: 'diária' },
     { label: 'Semanal', value: 'semanal' },
@@ -73,10 +86,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
       return;
     }
 
-    const hoje = new Date();
-    const fim = new Date();
-    fim.setDate(hoje.getDate() + parseInt(duracao));
-
     const novo = new Desafio(
       nome,
       descricao,
@@ -90,34 +99,42 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
       ativo
     );
 
-
     setDesafios([...desafios, novo]);
-    setNome(''); setDescricao(''); setCategoria(''); setTipoMeta('');
-    setUnidade(''); setValorMeta(''); setFrequencia(''); setDuracao('');
-    setEhPersonalizavel(true); setAtivo(true);
     navigation.goBack();
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.titulo}>🎯 BetterBite</Text>
-      <Text style={styles.subtitulo}>Criar novo desafio</Text>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        {/* Header com botão de voltar */}
+              <View style={styles.detailHeader}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Ionicons name="arrow-back" size={28} color="#333" />
+                  <Text style={styles.backButtonText}> Voltar</Text>
+                </TouchableOpacity>
+                <Text style={styles.title}>Criar Desafio</Text>
+                <View style={{ width: 70 }} /> {/* espaço para balancear layout */}
+              </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <Input label="Nome" value={nome} onChange={setNome} />
+          <Input label="Descrição" value={descricao} onChange={setDescricao} />
+          <Input label="Categoria" value={categoria} onChange={setCategoria} />
+          <DropdownCustom label="Tipo de Meta" value={tipoMeta} onPress={() => openDropdown('tipoMeta')} displayValue={getLabelByValue(tipoMetaOptions, tipoMeta)} />
+          <DropdownCustom label="Unidade" value={unidade} onPress={() => openDropdown('unidade')} displayValue={getLabelByValue(unidadeOptions, unidade)} />
+          <Input label="Valor da Meta" value={valorMeta} onChange={setValorMeta} keyboardType="numeric" />
+          <DropdownCustom label="Frequência" value={frequencia} onPress={() => openDropdown('frequencia')} displayValue={getLabelByValue(frequenciaOptions, frequencia)} />
+          <Input label="Duração (dias)" value={duracao} onChange={setDuracao} keyboardType="numeric" />
+          <SwitchRow label="Personalizável?" value={ehPersonalizavel} onValueChange={setEhPersonalizavel} />
+          <SwitchRow label="Ativo?" value={ativo} onValueChange={setAtivo} />
 
-      <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
-        <Input label="Nome" value={nome} onChange={setNome} />
-        <Input label="Descrição" value={descricao} onChange={setDescricao} />
-        <Input label="Categoria" value={categoria} onChange={setCategoria} />
-        <DropdownCustom label="Tipo de Meta" value={tipoMeta} onPress={() => openDropdown('tipoMeta')} displayValue={getLabelByValue(tipoMetaOptions, tipoMeta)} />
-        <DropdownCustom label="Unidade" value={unidade} onPress={() => openDropdown('unidade')} displayValue={getLabelByValue(unidadeOptions, unidade)} />
-        <Input label="Valor da Meta" value={valorMeta} onChange={setValorMeta} keyboardType='numeric' />
-        <DropdownCustom label="Frequência" value={frequencia} onPress={() => openDropdown('frequencia')} displayValue={getLabelByValue(frequenciaOptions, frequencia)} />
-        <Input label="Duração (dias)" value={duracao} onChange={setDuracao} keyboardType='numeric' />
-        <SwitchRow label="Personalizável?" value={ehPersonalizavel} onValueChange={setEhPersonalizavel} />
-        <SwitchRow label="Ativo?" value={ativo} onValueChange={setAtivo} />
-        <TouchableOpacity style={styles.button} onPress={addDesafio}>
-          <Text style={styles.buttonText}>Salvar Desafio</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity style={styles.botao} onPress={addDesafio}>
+            <Text style={styles.botaoTexto}>Salvar Desafio</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal transparent visible={modalVisible} animationType="fade">
         <TouchableOpacity style={styles.modalBackground} activeOpacity={1} onPress={() => setModalVisible(false)}>
@@ -134,13 +151,13 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 function Input({ label, value, onChange, keyboardType = 'default' }: { label: string; value: string; onChange: (text: string) => void; keyboardType?: 'default' | 'numeric' }) {
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
@@ -156,9 +173,9 @@ function Input({ label, value, onChange, keyboardType = 'default' }: { label: st
 
 function DropdownCustom({ label, value, onPress, displayValue }: { label: string; value: string; onPress: () => void; displayValue: string }) {
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity style={styles.dropdownCustom} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.dropdownCustom} onPress={onPress}>
         <Text style={[styles.dropdownText, !value && { color: '#aaa' }]}>{displayValue}</Text>
       </TouchableOpacity>
     </View>
@@ -174,75 +191,93 @@ function SwitchRow({ label, value, onValueChange }: { label: string; value: bool
   );
 }
 
+const PRIMARY = '#4CAF50';
+
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    paddingTop: 45,
-    paddingHorizontal: 20,
-    backgroundColor: '#fdfdfd',
+    backgroundColor: '#F9F9F9',
   },
-  titulo: {
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: '#333',
+    marginLeft: 5,
+  },
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4CAF50',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitulo: {
-    fontSize: 20,
-    fontWeight: '600',
     color: '#333',
-    marginVertical: 10,
+    textAlign: 'center',
   },
-  form: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 10,
-    elevation: 3,
+  container: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    color: '#000',
+  scrollContent: {
+    padding: 20,
+  },
+  inputGroup: {
+    marginBottom: 14,
   },
   label: {
+    fontSize: 16,
     fontWeight: '500',
     marginBottom: 6,
     color: '#333',
   },
+  input: {
+    borderWidth: 1,
+    borderColor: '#CCC',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#FFF',
+  },
   dropdownCustom: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
+    borderColor: '#CCC',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#FFF',
   },
   dropdownText: {
     fontSize: 16,
-    color: '#000',
+    color: '#333',
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 10,
   },
   button: {
-    backgroundColor: '#4CAF50',
-    padding: 14,
+    backgroundColor: PRIMARY,
+    paddingVertical: 16,
     borderRadius: 10,
     marginTop: 20,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
+    fontSize: 17,
+    color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 16,
   },
   modalBackground: {
     flex: 1,
@@ -251,18 +286,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    maxHeight: 250,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    maxHeight: 280,
   },
   option: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#EEE',
   },
   optionText: {
     fontSize: 16,
     color: '#333',
+  },
+  botao: {
+    backgroundColor: '#8BC34A',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 28,
+    alignItems: 'center',
+  },
+  botaoTexto: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 17,
   },
 });
