@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
 import { Usuario } from "../model/Usuario";
+import { usuariosMock } from "../mocks/usuarioMock";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login"> & {
   setUsuario: (usuario: Usuario) => void;
@@ -44,17 +45,27 @@ export default function Login({ navigation, setUsuario }: Props) {
 
     return valido;
   };
-
   const handleLogin = async () => {
     if (!validarCampos()) return;
 
     try {
+      // Pega os usuários do AsyncStorage
       const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
-      const usuarios: Usuario[] = usuariosData ? JSON.parse(usuariosData) : [];
+      const usuariosAsync: Usuario[] = usuariosData
+        ? JSON.parse(usuariosData)
+        : [];
 
-      const usuario = usuarios.find(
+      // Procura no AsyncStorage
+      let usuario = usuariosAsync.find(
         (u) => u.email === email && u.senhaHash === senha
       );
+
+      // Se não encontrou no AsyncStorage, procura no mock
+      if (!usuario) {
+        usuario = usuariosMock.find(
+          (u) => u.email === email && u.senhaHash === senha
+        );
+      }
 
       if (usuario) {
         await AsyncStorage.setItem("usuarioLogado", JSON.stringify(usuario));
