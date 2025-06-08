@@ -14,7 +14,8 @@ export class Receita {
     public caloriasPorPorcao: number,
     public proteinasPorPorcao: number,
     public gordurasPorPorcao: number,
-    public fibrasPorPorcao: number
+    public fibrasPorPorcao: number,
+    public tags: string[] = []
   ) {
     this.id = uuidv4();
   }
