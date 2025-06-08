@@ -1,51 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  SafeAreaView,
-  StatusBar,
-  Image
-} from 'react-native';
-import { Desafio } from '../model/Desafio';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image, ActivityIndicator } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-interface Props {
-  desafios: Desafio[];
-}
+import { Desafio } from '../model/Desafio';
+import { DesafioUsuario } from '../model/DesafioUsuario'; 
+import { DesafioController } from '../controllers/DesafioController'; 
 
-type RootStackParamList = {
-  DetalhesDesafio: { idDesafio: string };
-  CriarDesafio: undefined;
-  Home: undefined;
+type Props = NativeStackScreenProps<RootStackParamList, 'ListaDesafios'> & {
+  desafios: Desafio[]; 
+  registros: DesafioUsuario[]; 
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-export default function ListaDesafios({ desafios }: Props) {
-  const navigation = useNavigation<NavigationProp>();
-
-  const [filtro, setFiltro] = useState('');
+export default function ListaDesafios({ navigation, desafios, registros }: Props) {
   const [loading, setLoading] = useState(true);
-  const [lista, setLista] = useState<Desafio[]>([]);
+  const controller = new DesafioController(desafios, registros, []); 
 
   useEffect(() => {
-    setLoading(true);
     setTimeout(() => {
-      setLista(desafios);
       setLoading(false);
-    }, 1000);
-  }, [desafios]);
+    }, 500); 
+  }, []);
 
-  const desafiosFiltrados = lista.filter(d =>
-    d.nome.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const renderDesafioItem = ({ item }: { item: Desafio }) => {
+    let desafioIcon: any = 'star-outline';
+    switch(item.categoria) {
+        case 'alimentacao':
+            desafioIcon = 'restaurant-outline';
+            break;
+        case 'exercicio':
+            desafioIcon = 'barbell-outline';
+            break;
+        case 'bem-estar':
+            desafioIcon = 'happy-outline';
+            break;
+        default:
+            desafioIcon = 'star-outline';
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.desafioCard}
+        onPress={() => navigation.navigate('DetalhesDesafio', { idDesafio: item.id })}
+      >
+        <View style={styles.desafioCardIconPlaceholder}>
+            <Ionicons name={desafioIcon} size={40} color="#689F38" />
+        </View>
+        <View style={styles.desafioCardInfo}>
+          <Text style={styles.desafioCardTitle}>{item.nome}</Text>
+          <Text style={styles.desafioCardDesc}>{item.descricao}</Text>
+          <Text style={styles.desafioCardMeta}>
+            Meta: {item.valorMeta} {item.unidade} por {item.frequencia} ({item.duracao} dias)
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color="#555" />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -54,104 +66,81 @@ export default function ListaDesafios({ desafios }: Props) {
         <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainerList}>
           <Image
             source={require('../assets/better-bite-logo.png')}
-            style={styles.appLogoMassive}
+            style={styles.appLogoMassive} 
             accessibilityLabel="BetterBite Logo"
           />
         </TouchableOpacity>
+        
+        {navigation.canGoBack() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonList}>
+            <Ionicons name="arrow-back" size={28} color="#333" />
+            <Text style={styles.backButtonText}>Voltar</Text>
+          </TouchableOpacity>
+        )}
 
-        <Text style={styles.title}>Desafios Ativos</Text>
-
+        <Text style={styles.title}>🏆 Todos os Desafios</Text>
         <Image
-          source={require('../assets/desafios-logo.png')}
+          source={require('../assets/desafios-logo.png')} 
           style={styles.screenLogo}
           accessibilityLabel="Logo Desafios"
         />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Buscar desafio..."
-          placeholderTextColor="#999"
-          value={filtro}
-          onChangeText={setFiltro}
-        />
       </View>
 
-      <View style={styles.listWrapper}>
+      <View style={styles.scrollableContentWrapper}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
+            <ActivityIndicator size="large" color="#8BC34A" />
             <Text style={styles.loadingText}>Carregando desafios...</Text>
           </View>
         ) : (
           <FlatList
-            data={desafiosFiltrados}
+            data={desafios} 
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.itemBox}
-                onPress={() => navigation.navigate('DetalhesDesafio', { idDesafio: item.id })}
-              >
-                <Text style={styles.itemTitle}>{item.nome}</Text>
-                <Ionicons name="chevron-forward" size={24} color="#888" />
-              </TouchableOpacity>
-            )}
+            renderItem={renderDesafioItem}
+            showsVerticalScrollIndicator={true} 
+            contentContainerStyle={styles.listContentContainer}
             ListEmptyComponent={() => (
               <View style={styles.emptyListContainer}>
                 <Ionicons name="sad-outline" size={50} color="#CCC" />
-                <Text style={styles.emptyListText}>Nenhum desafio encontrado.</Text>
+                <Text style={styles.emptyListText}>Nenhum desafio disponível no momento.</Text>
               </View>
             )}
           />
         )}
       </View>
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('CriarDesafio')}
-      >
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // mantém os estilos anteriores
   safeArea: {
     flex: 1,
     backgroundColor: '#F9F9F9',
   },
- header: {
+  header: {
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
     backgroundColor: '#FFF',
     alignItems: 'center',
+    paddingTop: 40, 
   },
   appLogoContainerList: {
     position: 'absolute',
     top: 10,
     left: 10,
-    zIndex: 1,
+    zIndex: 2,
   },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  appLogoContainer: {
-    // Mantido para consistência
-  },
-  appLogoMassive: { // AINDA MAIOR
-    width: 300, // Aumentado significativamente
-    height: 100, // Aumentado significativamente
+    appLogoMassive: { 
+    width: 350, 
+    height: 120, 
     resizeMode: 'contain',
   },
-  backButton: {
+  backButtonList: {
+    position: 'absolute',
+    top: 15,
+    right: 10,
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 5,
@@ -170,62 +159,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     textAlign: 'center',
   },
-  screenLogo: {
+  screenLogo: { 
     width: 150,
     height: 100,
     resizeMode: 'contain',
     marginBottom: 15,
-  },
-  input: {
-    backgroundColor: '#f1f1f1',
-    borderRadius: 12,
-    height: 44,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#444',
-    width: '100%',
-    maxWidth: 400,
-  },
-  listWrapper: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
-  },
-  itemBox: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#4CAF50',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.5,
   },
   loadingContainer: {
     flex: 1,
@@ -236,6 +174,54 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  scrollableContentWrapper: {
+    flex: 1,
+  },
+  listContentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  desafioCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  desafioCardIconPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: '#E6F4E6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  desafioCardInfo: {
+    flex: 1,
+  },
+  desafioCardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  desafioCardDesc: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  desafioCardMeta: {
+    fontSize: 12,
+    color: '#888',
   },
   emptyListContainer: {
     flex: 1,
