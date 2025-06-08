@@ -19,17 +19,38 @@ type Props = NativeStackScreenProps<RootStackParamList, "Login"> & {
 export default function Login({ navigation, setUsuario }: Props) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [erroEmail, setErroEmail] = useState("");
+  const [erroSenha, setErroSenha] = useState("");
+  const [erroLogin, setErroLogin] = useState("");
+
+  const validarCampos = () => {
+    let valido = true;
+    setErroEmail("");
+    setErroSenha("");
+    setErroLogin("");
+
+    if (!email) {
+      setErroEmail("Digite o email.");
+      valido = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setErroEmail("Formato de email inválido.");
+      valido = false;
+    }
+
+    if (!senha) {
+      setErroSenha("Digite a senha.");
+      valido = false;
+    }
+
+    return valido;
+  };
 
   const handleLogin = async () => {
+    if (!validarCampos()) return;
+
     try {
       const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
-
-      if (!usuariosData) {
-        Alert.alert("Erro", "Nenhum usuário cadastrado.");
-        return;
-      }
-
-      const usuarios: Usuario[] = JSON.parse(usuariosData);
+      const usuarios: Usuario[] = usuariosData ? JSON.parse(usuariosData) : [];
 
       const usuario = usuarios.find(
         (u) => u.email === email && u.senhaHash === senha
@@ -41,7 +62,7 @@ export default function Login({ navigation, setUsuario }: Props) {
         Alert.alert("Bem-vindo", `Olá, ${usuario.nome}!`);
         navigation.replace("Home");
       } else {
-        Alert.alert("Erro", "Email ou senha incorretos.");
+        setErroLogin("Email ou senha incorretos.");
       }
     } catch (e) {
       console.error("Erro no login:", e);
@@ -51,7 +72,6 @@ export default function Login({ navigation, setUsuario }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Header simples com nome do app */}
       <View style={styles.header}>
         <Text style={styles.appName}>BetterBite</Text>
       </View>
@@ -59,22 +79,35 @@ export default function Login({ navigation, setUsuario }: Props) {
       <Text style={styles.title}>Login</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, erroEmail ? styles.inputErro : null]}
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          setErroEmail("");
+          setErroLogin("");
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
         placeholderTextColor="#999"
       />
+      {erroEmail ? <Text style={styles.erroTexto}>{erroEmail}</Text> : null}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, erroSenha ? styles.inputErro : null]}
         placeholder="Senha"
         secureTextEntry
         value={senha}
-        onChangeText={setSenha}
+        onChangeText={(text) => {
+          setSenha(text);
+          setErroSenha("");
+          setErroLogin("");
+        }}
         placeholderTextColor="#999"
       />
+      {erroSenha ? <Text style={styles.erroTexto}>{erroSenha}</Text> : null}
+
+      {erroLogin ? <Text style={styles.erroLogin}>{erroLogin}</Text> : null}
 
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.buttonText}>Entrar</Text>
@@ -122,13 +155,28 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 15,
     fontSize: 16,
-    marginBottom: 15,
+    marginBottom: 5,
     borderColor: "#d1d5db",
     borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 1,
+  },
+  inputErro: {
+    borderColor: "#e74c3c",
+  },
+  erroTexto: {
+    color: "#e74c3c",
+    marginBottom: 10,
+    marginLeft: 5,
+    fontSize: 14,
+  },
+  erroLogin: {
+    color: "#e74c3c",
+    textAlign: "center",
+    marginBottom: 15,
+    fontSize: 15,
   },
   loginButton: {
     backgroundColor: "#4CAF50",

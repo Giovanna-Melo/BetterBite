@@ -82,19 +82,21 @@ export default function EditarUsuarioScreen({
         </TouchableOpacity>
 
         <Text style={styles.title}>Editar Perfil</Text>
-
+        <Text style={styles.label}>Nome:</Text>
         <TextInput
           style={styles.input}
           placeholder="Nome"
           value={nome}
           onChangeText={setNome}
         />
+        <Text style={styles.label}>Email:</Text>
         <TextInput
           style={[styles.input, styles.inputDisabled]}
           placeholder="Email"
           value={usuario.email}
           editable={false}
         />
+        <Text style={styles.label}>Peso:</Text>
         <TextInput
           style={styles.input}
           placeholder="Peso (kg)"
@@ -102,6 +104,7 @@ export default function EditarUsuarioScreen({
           value={peso}
           onChangeText={setPeso}
         />
+        <Text style={styles.label}>Altura:</Text>
         <TextInput
           style={styles.input}
           placeholder="Altura (cm)"
@@ -109,6 +112,9 @@ export default function EditarUsuarioScreen({
           value={altura}
           onChangeText={setAltura}
         />
+        <Text style={styles.label}>
+          Restrições alimentares(separadas por vírgula):
+        </Text>
         <TextInput
           style={styles.input}
           placeholder="Restrições alimentares (separadas por vírgula)"
@@ -185,5 +191,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 6,
     color: "#333",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 5,
+    marginLeft: 2,
   },
 });

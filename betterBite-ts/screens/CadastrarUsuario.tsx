@@ -7,8 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Image,
-  Button,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -27,24 +25,43 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
-  const [genero, setGenero] = useState<"masculino" | "feminino" | "outro">(
-    "masculino"
-  );
+  const [genero, setGenero] = useState("");
   const [peso, setPeso] = useState("");
   const [altura, setAltura] = useState("");
   const [restricoes, setRestricoes] = useState("");
 
+  const [erros, setErros] = useState<{ [key: string]: string }>({});
+
+  const validarCampos = () => {
+    const novosErros: { [key: string]: string } = {};
+    if (!nome) novosErros.nome = "Informe o nome.";
+    if (!email || !email.includes("@")) novosErros.email = "Email inválido.";
+    if (!senha || senha.length < 6) novosErros.senha = "Senha muito curta.";
+    if (!dataNascimento || isNaN(Date.parse(dataNascimento)))
+      novosErros.dataNascimento = "Data inválida (use YYYY-MM-DD).";
+    if (!genero) novosErros.genero = "Selecione um gênero.";
+    if (!peso || isNaN(parseFloat(peso))) novosErros.peso = "Peso inválido.";
+    if (!altura || isNaN(parseFloat(altura)))
+      novosErros.altura = "Altura inválida.";
+
+    setErros(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
   const handleSalvar = async () => {
+    if (!validarCampos()) return;
+
     try {
       const novoUsuario = new Usuario(
         nome,
         email,
         senha,
-        new Date(dataNascimento),
-        genero,
+        new Date(dataNascimento.split("/").reverse().join("-")),
+
+        genero as "masculino" | "feminino" | "outro",
         parseFloat(peso),
         parseFloat(altura),
-        restricoes.split(",").map((r) => r.trim())
+        restricoes ? restricoes.split(",").map((r) => r.trim()) : []
       );
 
       const usuariosSalvos = await AsyncStorage.getItem("usuariosCadastrados");
@@ -55,7 +72,6 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
       const emailJaExiste = listaUsuarios.some(
         (usuario) => usuario.email === email
       );
-
       if (emailJaExiste) {
         Alert.alert("Erro", "Já existe um usuário com este email.");
         return;
@@ -67,9 +83,10 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
         "usuariosCadastrados",
         JSON.stringify(listaUsuarios)
       );
-      await AsyncStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
 
+      await AsyncStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
       setUsuario(novoUsuario);
+
       Alert.alert("Sucesso", "Usuário cadastrado!");
       navigation.replace("Home");
     } catch (e) {
@@ -78,6 +95,28 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
     }
   };
 
+  const formatarDataAmericana = (texto: string) => {
+    const numeros = texto.replace(/\D/g, "").slice(0, 8); // Apenas números, máx. 8 dígitos
+    let formatado = "";
+
+    if (numeros.length <= 4) {
+      formatado = numeros;
+    } else if (numeros.length <= 6) {
+      formatado = `${numeros.slice(0, 4)}-${numeros.slice(4)}`;
+    } else {
+      formatado = `${numeros.slice(0, 4)}-${numeros.slice(
+        4,
+        6
+      )}-${numeros.slice(6)}`;
+    }
+
+    return formatado;
+  };
+
+  function formatarDataParaISO(data: string): string {
+    const [dia, mes, ano] = data.split("/");
+    return `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+  }
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -97,6 +136,8 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
           value={nome}
           onChangeText={setNome}
         />
+        {erros.nome && <Text style={styles.errorText}>{erros.nome}</Text>}
+
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -104,6 +145,8 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
           value={email}
           onChangeText={setEmail}
         />
+        {erros.email && <Text style={styles.errorText}>{erros.email}</Text>}
+
         <TextInput
           style={styles.input}
           placeholder="Senha"
@@ -111,25 +154,33 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
           value={senha}
           onChangeText={setSenha}
         />
+        {erros.senha && <Text style={styles.errorText}>{erros.senha}</Text>}
+
         <TextInput
           style={styles.input}
-          placeholder="Data de Nascimento (YYYY-MM-DD)"
+          placeholder="Data de Nascimento (yyyy-mm-dd)"
+          keyboardType="numeric"
+          maxLength={10}
           value={dataNascimento}
-          onChangeText={setDataNascimento}
+          onChangeText={(texto) =>
+            setDataNascimento(formatarDataAmericana(texto))
+          }
         />
 
-        <Text style={styles.label}>Gênero:</Text>
+        <Text style={styles.label}>Gênero</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={genero}
             onValueChange={(itemValue) => setGenero(itemValue)}
             style={styles.picker}
           >
+            <Picker.Item label="Selecione..." value="" />
             <Picker.Item label="Masculino" value="masculino" />
             <Picker.Item label="Feminino" value="feminino" />
             <Picker.Item label="Outro" value="outro" />
           </Picker>
         </View>
+        {erros.genero && <Text style={styles.errorText}>{erros.genero}</Text>}
 
         <TextInput
           style={styles.input}
@@ -138,6 +189,8 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
           value={peso}
           onChangeText={setPeso}
         />
+        {erros.peso && <Text style={styles.errorText}>{erros.peso}</Text>}
+
         <TextInput
           style={styles.input}
           placeholder="Altura (cm)"
@@ -145,6 +198,8 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
           value={altura}
           onChangeText={setAltura}
         />
+        {erros.altura && <Text style={styles.errorText}>{erros.altura}</Text>}
+
         <TextInput
           style={styles.input}
           placeholder="Restrições alimentares (separadas por vírgula)"
@@ -161,25 +216,14 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#F0F4F8",
-    padding: 20,
-    flexGrow: 1,
-  },
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
   },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
-    fontSize: 16,
-    marginLeft: 6,
-    color: "#333",
+  container: {
+    backgroundColor: "#F0F4F8",
+    padding: 20,
+    flexGrow: 1,
   },
   title: {
     fontSize: 24,
@@ -194,13 +238,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     fontSize: 16,
-    marginBottom: 15,
+    marginBottom: 10,
     borderColor: "#d1d5db",
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 1,
   },
   label: {
     fontWeight: "600",
@@ -212,12 +252,12 @@ const styles = StyleSheet.create({
     borderColor: "#d1d5db",
     borderWidth: 1,
     borderRadius: 12,
-    marginBottom: 15,
+    marginBottom: 10,
     overflow: "hidden",
-    elevation: 1,
   },
   picker: {
     height: 50,
+    width: "100%",
   },
   button: {
     backgroundColor: "#4CAF50",
@@ -225,14 +265,26 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     marginTop: 10,
-    shadowColor: "#4CAF50",
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 3,
   },
   buttonText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 18,
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 10,
+    fontSize: 14,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  backButtonText: {
+    fontSize: 16,
+    marginLeft: 6,
+    color: "#333",
   },
 });
