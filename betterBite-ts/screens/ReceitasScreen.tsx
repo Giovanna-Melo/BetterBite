@@ -1,22 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  SafeAreaView,
-  StatusBar,
-  Image
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Image, ScrollView } from 'react-native';
 import { Receita } from '../model/Receita';
 import { ReceitaController } from '../controllers/ReceitaController';
 import ReceitaCard from '../components/ReceitaCard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { TagNutricional } from '../model/TagNutricional';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Receitas'>;
 
@@ -26,32 +16,38 @@ export default function ReceitasScreen({ navigation }: Props) {
   const [filtro, setFiltro] = useState<string>('');
   const [selecionada, setSelecionada] = useState<Receita | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [availableTags, setAvailableTags] = useState<TagNutricional[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
     setLoading(true);
     setTimeout(() => {
       const todas = controller.listarTodas();
       setReceitas(todas);
-      console.log('Número de receitas carregadas:', todas.length);
+      setAvailableTags(controller.listarTodasTagsDisponiveis());
       setLoading(false);
     }, 1000);
   }, []);
 
-  const receitasFiltradas = receitas.filter((r) =>
-    r.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-    r.ingredientes.some((ing) => ing.toLowerCase().includes(filtro.toLowerCase()))
-  );
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prevTagIds) =>
+      prevTagIds.includes(tagId)
+        ? prevTagIds.filter((id) => id !== tagId)
+        : [...prevTagIds, tagId]
+    );
+  };
 
-  // Se uma receita estiver selecionada, mostra o card detalhado
+  const receitasFiltradas = controller.filtrarReceitas(filtro, selectedTagIds);
+
   if (selecionada) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
         <View style={styles.detailHeader}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainer}>
+          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoMassive}>
             <Image
               source={require('../assets/better-bite-logo.png')}
-              style={styles.appLogoMassive} // Mantendo o estilo da logo maior
+              style={styles.appLogoMassive}
               accessibilityLabel="BetterBite Logo"
             />
           </TouchableOpacity>
@@ -65,7 +61,6 @@ export default function ReceitasScreen({ navigation }: Props) {
     );
   }
 
-  // Caso contrário, mostra a lista de receitas
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
@@ -73,10 +68,16 @@ export default function ReceitasScreen({ navigation }: Props) {
         <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainerList}>
             <Image
               source={require('../assets/better-bite-logo.png')}
-              style={styles.appLogoMassive} // Mantendo o estilo da logo maior
+              style={styles.appLogoMassive}
               accessibilityLabel="BetterBite Logo"
             />
         </TouchableOpacity>
+        {navigation.canGoBack() && ( 
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonList}>
+            <Ionicons name="arrow-back" size={28} color="#333" />
+            <Text style={styles.backButtonText}>Voltar</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>Receitas Saudáveis</Text>
         <Image
           source={require('../assets/receitas-logo.png')}
@@ -90,6 +91,28 @@ export default function ReceitasScreen({ navigation }: Props) {
           value={filtro}
           onChangeText={setFiltro}
         />
+      </View>
+
+      <View style={styles.tagsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.tagsScrollViewContent}>
+          {availableTags.map((tag) => (
+            <TouchableOpacity
+              key={tag.id}
+              style={[
+                styles.tagButton,
+                selectedTagIds.includes(tag.id) ? styles.tagButtonSelected : {} 
+              ]}
+              onPress={() => toggleTag(tag.id)}
+            >
+              <Text style={[
+                styles.tagButtonText,
+                selectedTagIds.includes(tag.id) ? styles.tagButtonTextSelected : {} 
+              ]}>
+                {tag.nome}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.scrollableContentWrapper}>
@@ -111,16 +134,25 @@ export default function ReceitasScreen({ navigation }: Props) {
                       🔥 {item.caloriasPorPorcao} kcal por porção
                     </Text>
                   )}
+                  {item.tags.length > 0 && (
+                      <View style={styles.itemTagsContainer}>
+                          {item.tags.map(tagId => (
+                              <Text key={tagId} style={styles.itemTagText}>
+                                  {controller.buscarNomeTagPorId(tagId)}
+                              </Text>
+                          ))}
+                      </View>
+                  )}
                 </View>
                 <Ionicons name="chevron-forward" size={24} color="#888" />
               </TouchableOpacity>
             )}
-            showsVerticalScrollIndicator={true} // ALTERADO PARA TRUE PARA MANTER A BARRINHA DE ROLAGEM
+            showsVerticalScrollIndicator={true}
             contentContainerStyle={styles.listContentContainer}
             ListEmptyComponent={() => (
               <View style={styles.emptyListContainer}>
                 <Ionicons name="sad-outline" size={50} color="#CCC" />
-                <Text style={styles.emptyListText}>Nenhuma receita encontrada.</Text>
+                <Text style={styles.emptyListText}>Nenhuma receita encontrada para os filtros aplicados.</Text>
               </View>
             )}
           />
@@ -157,12 +189,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
   },
-  appLogoContainer: {
-    // Mantido para consistência
-  },
-  appLogoMassive: { // AINDA MAIOR
-    width: 300, // Aumentado significativamente
-    height: 100, // Aumentado significativamente
+  appLogoMassive: {
+    width: 300,
+    height: 100,
     resizeMode: 'contain',
   },
   backButton: {
@@ -170,11 +199,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 5,
     paddingHorizontal: 10,
+    position: 'absolute',
+    right: 10,
+    top: 15,
+    zIndex: 2,
   },
   backButtonText: {
     fontSize: 17,
     color: '#333',
     marginLeft: 5,
+  },
+  backButtonList: { 
+    position: 'absolute',
+    top: 15,
+    right: 10,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
   },
   title: {
     fontSize: 28,
@@ -204,6 +247,38 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
     width: '100%',
+  },
+  tagsContainer: {
+    height: 60,
+    backgroundColor: '#F0F0F0',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  tagsScrollViewContent: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  tagButton: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginRight: 10,
+    borderColor: '#CCC',
+    borderWidth: 1,
+  },
+  tagButtonSelected: {
+    backgroundColor: '#8BC34A',
+    borderColor: '#689F38',
+  },
+  tagButtonText: {
+    color: '#555',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  tagButtonTextSelected: {
+    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -250,6 +325,22 @@ const styles = StyleSheet.create({
   itemCalories: {
     fontSize: 14,
     color: '#777',
+  },
+  itemTagsContainer: { 
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 5,
+  },
+  itemTagText: { 
+      fontSize: 10,
+      backgroundColor: '#E6F4E6', 
+      color: '#689F38', 
+      borderRadius: 5,
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      marginRight: 5,
+      marginBottom: 5,
+      fontWeight: 'bold',
   },
   emptyListContainer: {
     flex: 1,

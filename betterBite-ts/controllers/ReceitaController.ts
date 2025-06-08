@@ -1,32 +1,42 @@
 import { Receita } from '../model/Receita';
+import { TagNutricional } from '../model/TagNutricional';
 import { receitasMock } from '../mocks/receitaMock';
+import { tagsMock } from '../mocks/tagNutricionalMock'; 
 
 export class ReceitaController {
   private receitas: Receita[];
+  private todasTags: TagNutricional[]; 
 
   constructor() {
     this.receitas = receitasMock;
+    this.todasTags = tagsMock;
   }
 
   listarTodas(): Receita[] {
     return this.receitas;
   }
 
-  buscarPorNomeOuIngrediente(texto: string): Receita[] {
-    const query = texto.toLowerCase();
-    return this.receitas.filter(
-      (r) =>
-        r.nome.toLowerCase().includes(query) ||
-        r.ingredientes.some((ing) => ing.toLowerCase().includes(query))
-    );
+  listarTodasTagsDisponiveis(): TagNutricional[] {
+    return this.todasTags;
   }
 
-  filtrarPorRestricao(restricoes: string[]): Receita[] {
-    return this.receitas.filter(
-      (r) =>
-        !r.ingredientes.some((ing) =>
-          restricoes.map((res) => res.toLowerCase()).includes(ing.toLowerCase())
-        )
-    );
+  buscarNomeTagPorId(tagId: string): string | undefined {
+    return this.todasTags.find(tag => tag.id === tagId)?.nome;
+  }
+
+  filtrarReceitas(texto: string, tagIdsSelecionadas: string[]): Receita[] {
+    const query = texto.toLowerCase();
+
+    return this.receitas.filter((r) => {
+      const matchesSearch =
+        r.nome.toLowerCase().includes(query) ||
+        r.ingredientes.some((ing) => ing.toLowerCase().includes(query));
+
+      const matchesTags =
+        tagIdsSelecionadas.length === 0 || 
+        tagIdsSelecionadas.every((selectedTagId) => r.tags.includes(selectedTagId)); 
+
+      return matchesSearch && matchesTags;
+    });
   }
 }
