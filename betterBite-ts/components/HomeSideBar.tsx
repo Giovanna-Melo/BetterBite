@@ -20,7 +20,7 @@ export default function HomeSidebar({ usuario, setUsuario, navigation, activeMen
     <View style={styles.sidebar}>
       <TouchableOpacity style={styles.sidebarIcon} onPress={() => navigation.navigate('EditarUsuario')}>
         <Image
-          source={require('../assets/receitas-logo.png')}
+          source={require('../assets/login-avatar.png')}
           style={styles.avatarImage}
         />
         <Text style={styles.userNameText}>{usuario.nome.split(' ')[0]}</Text>
