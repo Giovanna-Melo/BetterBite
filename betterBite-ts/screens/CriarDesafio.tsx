@@ -34,7 +34,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
   const [valorMeta, setValorMeta] = useState('');
   const [frequencia, setFrequencia] = useState('');
   const [duracao, setDuracao] = useState('');
-  const [ehPersonalizavel, setEhPersonalizavel] = useState(true);
   const [ativo, setAtivo] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentDropdown, setCurrentDropdown] = useState<string | null>(null);
@@ -95,7 +94,7 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
       parseFloat(valorMeta),
       frequencia,
       parseInt(duracao),
-      ehPersonalizavel,
+      true,
       ativo
     );
 
@@ -106,7 +105,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        {/* Header com botão de voltar */}
               <View style={styles.detailHeader}>
                 <TouchableOpacity
                   style={styles.backButton}
@@ -116,7 +114,7 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
                   <Text style={styles.backButtonText}> Voltar</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>Criar Desafio</Text>
-                <View style={{ width: 70 }} /> {/* espaço para balancear layout */}
+                <View style={{ width: 70 }} /> 
               </View>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <Input label="Nome" value={nome} onChange={setNome} />
@@ -127,7 +125,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
           <Input label="Valor da Meta" value={valorMeta} onChange={setValorMeta} keyboardType="numeric" />
           <DropdownCustom label="Frequência" value={frequencia} onPress={() => openDropdown('frequencia')} displayValue={getLabelByValue(frequenciaOptions, frequencia)} />
           <Input label="Duração (dias)" value={duracao} onChange={setDuracao} keyboardType="numeric" />
-          <SwitchRow label="Personalizável?" value={ehPersonalizavel} onValueChange={setEhPersonalizavel} />
           <SwitchRow label="Ativo?" value={ativo} onValueChange={setAtivo} />
 
           <TouchableOpacity style={styles.botao} onPress={addDesafio}>

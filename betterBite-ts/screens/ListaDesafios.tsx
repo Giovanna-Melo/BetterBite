@@ -78,7 +78,7 @@ export default function ListaDesafios({ navigation, desafios, registros }: Props
           </TouchableOpacity>
         )}
 
-        <Text style={styles.title}>🏆 Todos os Desafios</Text>
+        <Text style={styles.title}>Todos os Desafios</Text>
         <Image
           source={require('../assets/desafios-logo.png')} 
           style={styles.screenLogo}
