@@ -6,6 +6,8 @@ import { Usuario } from '../model/Usuario';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 
+import { AppColors, AppDimensions } from '../constants/AppStyles';
+
 type HomeSidebarProps = {
   usuario: Usuario;
   setUsuario: (usuario: Usuario | null) => void;
@@ -56,13 +58,11 @@ export default function HomeSidebar({ usuario, setUsuario, navigation, activeMen
       </View>
       
       <TouchableOpacity
-        style={styles.logoutButton} 
-        onPress={() => {
-          onLogout();
-        }}
+        style={styles.logoutButton}
+        onPress={onLogout}
       >
-        <Ionicons name="log-out-outline" size={24} color="#FF6347" /> 
-        <Text style={styles.logoutButtonText}>Sair</Text> 
+        <Ionicons name="log-out-outline" size={AppDimensions.iconSize.medium} color={AppColors.error} />
+        <Text style={styles.logoutButtonText}>Sair</Text>
       </TouchableOpacity>
     </View>
   );
@@ -71,11 +71,11 @@ export default function HomeSidebar({ usuario, setUsuario, navigation, activeMen
 const styles = StyleSheet.create({
   sidebar: {
     width: 80,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 20,
+    backgroundColor: AppColors.cardBackground,
+    paddingVertical: AppDimensions.spacing.medium,
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#EEE',
+    borderRightColor: AppColors.border,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
@@ -85,21 +85,21 @@ const styles = StyleSheet.create({
   },
   sidebarIcon: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: AppDimensions.spacing.xLarge,
   },
   avatarImage: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: AppColors.lightGray,
     justifyContent: 'center',
     alignItems: 'center',
   },
   userNameText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 5,
+    color: AppColors.text,
+    marginTop: AppDimensions.spacing.small / 2,
   },
   sidebarNav: {
     flex: 1,
@@ -107,33 +107,33 @@ const styles = StyleSheet.create({
   },
   sidebarNavItem: {
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: AppDimensions.spacing.medium,
     width: '100%',
-    marginBottom: 10,
+    marginBottom: AppDimensions.spacing.small,
   },
   sidebarNavItemActive: {
-    backgroundColor: '#E6F4E6',
-    borderRadius: 10,
+    backgroundColor: AppColors.secondary + '1A',
+    borderRadius: AppDimensions.borderRadius.medium,
   },
   navIcon: {
-    width: 60,
-    height: 60,
+    width: AppDimensions.iconSize.xLarge,
+    height: AppDimensions.iconSize.xLarge,
   },
   navText: {
     fontSize: 12,
-    color: '#555',
-    marginTop: 5,
+    color: AppColors.textSecondary,
+    marginTop: AppDimensions.spacing.small / 2,
     fontWeight: 'bold',
   },
   logoutButton: {
     alignItems: 'center',
-    paddingVertical: 15,
-    marginTop: 20,
+    paddingVertical: AppDimensions.spacing.medium,
+    marginTop: AppDimensions.spacing.medium,
   },
   logoutButtonText: {
     fontSize: 12,
-    color: '#FF6347', 
-    marginTop: 5,
+    color: AppColors.error,
+    marginTop: AppDimensions.spacing.small / 2,
     fontWeight: 'bold',
   },
 });

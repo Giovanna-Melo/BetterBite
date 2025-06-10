@@ -23,14 +23,17 @@ export default function UserChallengesList({ desafiosDoUsuario, desafiosGerais, 
     let desafioIcon: any = 'star-outline';
     if (desafioGeral) {
         switch(desafioGeral.categoria) {
-            case 'alimentacao':
+            case 'introdução alimentar':
+              desafioIcon = 'leaf-outline';
+              break;
+            case 'refeições': 
                 desafioIcon = 'restaurant-outline';
-                break;
-            case 'exercicio':
-                desafioIcon = 'barbell-outline';
                 break;
             case 'bem-estar':
                 desafioIcon = 'happy-outline';
+                break;
+            case 'restrição':
+                desafioIcon = 'alert-circle-outline';
                 break;
             default:
                 desafioIcon = 'star-outline';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar, } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,21 +10,21 @@ import NotificacaoCarousel from '../components/NotificacaoCarousel';
 import DesafiosUsuarioList from '../components/DesafiosUsuarioList';
 
 import { Usuario } from '../model/Usuario';
-import { desafiosUsuariosMock } from '../mocks/desafioUsuarioMock';
-import { desafiosMock } from '../mocks/desafioMock';
+import { DesafioUsuario } from '../model/DesafioUsuario';
+import { Desafio } from '../model/Desafio';
 import { notificacoesMock } from '../mocks/notificacaoMock';
+
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
   usuario: Usuario;
   setUsuario: (usuario: Usuario | null) => void;
+  desafiosDoUsuario: DesafioUsuario[];
+  desafiosGerais: Desafio[]; 
 };
 
-export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
+export default function HomeScreen({ navigation, usuario, setUsuario, desafiosDoUsuario, desafiosGerais }: Props) {
   const [activeMenu, setActiveMenu] = useState<'desafios' | 'receitas' | null>(null);
-
-  const desafiosDoUsuario = desafiosUsuariosMock.filter(
-    (du) => du.usuarioId === usuario.id
-  );
 
   const notificacoesNaoLidas = notificacoesMock.filter(
     (notif) => notif.usuarioId === usuario.id && !notif.lida
@@ -37,7 +37,7 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8F8F8" />
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
       <View style={styles.container}>
         <HomeSideBar
           usuario={usuario}
@@ -49,21 +49,24 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
         />
 
         <ScrollView style={styles.mainContent} showsVerticalScrollIndicator={true}>
-          <View style={styles.headerContent}>
+          <View style={styles.homeHeader}> 
             <TouchableOpacity onPress={() => navigation.navigate('Home')}>
               <Image
                 source={require('../assets/better-bite-logo.png')}
-                style={styles.appLogoMassive}
+                style={styles.appLogoHome}
                 accessibilityLabel="BetterBite Logo"
               />
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.sectionTitle}>Olá, {usuario.nome.split(' ')[0]}!</Text>
+          <Text style={styles.sectionSubtitle}>Seu guia para hábitos saudáveis.</Text>
+
           <NotificacaoCarousel notificacoes={notificacoesNaoLidas} />
 
           <DesafiosUsuarioList
             desafiosDoUsuario={desafiosDoUsuario}
-            desafiosGerais={desafiosMock}
+            desafiosGerais={desafiosGerais}
             navigation={navigation}
           />
 
@@ -71,7 +74,7 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
             style={styles.createChallengeButton}
             onPress={() => navigation.navigate('CriarDesafio')}
           >
-            <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
+            <Ionicons name="add-circle-outline" size={AppDimensions.iconSize.large} color="#FFFFFF" />
             <Text style={styles.createChallengeButtonText}>Criar Novo Desafio</Text>
           </TouchableOpacity>
 
@@ -84,7 +87,7 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: AppColors.background,
   },
   container: {
     flex: 1,
@@ -92,27 +95,41 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.medium,
   },
-  headerContent: {
+  homeHeader: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: AppDimensions.spacing.large,
+    paddingVertical: AppDimensions.spacing.small,
   },
-    appLogoMassive: { 
-    width: 350, 
-    height: 120, 
+  appLogoHome: {
+    width: AppDimensions.logo.medium.width * 1.2,
+    height: AppDimensions.logo.medium.height * 1.2,
     resizeMode: 'contain',
   },
+  sectionTitle: {
+    fontSize: AppDimensions.iconSize.large,
+    fontWeight: 'bold',
+    color: AppColors.text,
+    marginBottom: AppDimensions.spacing.small,
+    marginTop: AppDimensions.spacing.medium,
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    color: AppColors.darkGray,
+    marginBottom: AppDimensions.spacing.large,
+    textAlign: 'center',
+  },
   createChallengeButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: AppColors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
-    borderRadius: 15,
-    marginTop: 30,
-    marginBottom: 20,
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.large,
+    marginTop: AppDimensions.spacing.xLarge,
+    marginBottom: AppDimensions.spacing.medium,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -123,6 +140,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 10,
+    marginLeft: AppDimensions.spacing.small,
   },
 });
