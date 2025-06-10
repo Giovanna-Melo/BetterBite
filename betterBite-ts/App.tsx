@@ -119,6 +119,10 @@ export default function App() {
                   {...props}
                   usuario={usuario}
                   setUsuario={setUsuario}
+                  desafiosDoUsuario={desafiosDoUsuarioState.filter(
+                    (du) => du.usuarioId === usuario.id
+                  )}
+                  desafiosGerais={desafios}
                 />
               )}
             </Stack.Screen>
@@ -129,6 +133,8 @@ export default function App() {
                   {...props}
                   desafios={desafios}
                   registros={desafiosDoUsuarioState}
+                  usuario={usuario}
+                  setDesafiosDoUsuarioState={setDesafiosDoUsuarioState}
                 />
               )}
             </Stack.Screen>
@@ -139,6 +145,8 @@ export default function App() {
                   {...props}
                   desafios={desafios}
                   setDesafios={setDesafios}
+                  usuario={usuario}
+                  setDesafiosDoUsuarioState={setDesafiosDoUsuarioState}
                 />
               )}
             </Stack.Screen>
@@ -169,6 +177,8 @@ export default function App() {
                   desafios={desafios}
                   registros={desafiosDoUsuarioState}
                   registrosDesafio={registrosDesafio}
+                  usuario={usuario}
+                  setDesafiosDoUsuarioState={setDesafiosDoUsuarioState}
                 />
               )}
             </Stack.Screen>

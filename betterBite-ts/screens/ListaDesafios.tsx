@@ -5,38 +5,46 @@ import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Desafio } from '../model/Desafio';
-import { DesafioUsuario } from '../model/DesafioUsuario'; 
-import { DesafioController } from '../controllers/DesafioController'; 
+import { DesafioUsuario } from '../model/DesafioUsuario';
+import { Usuario } from '../model/Usuario';
+import { DesafioController } from '../controllers/DesafioController';
+
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ListaDesafios'> & {
-  desafios: Desafio[]; 
-  registros: DesafioUsuario[]; 
+  desafios: Desafio[];
+  registros: DesafioUsuario[];
+  usuario: Usuario;
+  setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
 };
 
-export default function ListaDesafios({ navigation, desafios, registros }: Props) {
+export default function ListaDesafios({ navigation, desafios, registros, usuario, setDesafiosDoUsuarioState }: Props) {
   const [loading, setLoading] = useState(true);
   const controller = new DesafioController(desafios, registros, []); 
 
   useEffect(() => {
     setTimeout(() => {
       setLoading(false);
-    }, 500); 
+    }, 500);
   }, []);
 
   const renderDesafioItem = ({ item }: { item: Desafio }) => {
     let desafioIcon: any = 'star-outline';
     switch(item.categoria) {
-        case 'alimentacao':
-            desafioIcon = 'restaurant-outline';
-            break;
-        case 'exercicio':
-            desafioIcon = 'barbell-outline';
-            break;
-        case 'bem-estar':
-            desafioIcon = 'happy-outline';
-            break;
-        default:
-            desafioIcon = 'star-outline';
+            case 'introdução alimentar':
+              desafioIcon = 'leaf-outline';
+              break;
+            case 'refeições': 
+                desafioIcon = 'restaurant-outline';
+                break;
+            case 'bem-estar':
+                desafioIcon = 'happy-outline';
+                break;
+            case 'restrição':
+                desafioIcon = 'alert-circle-outline';
+                break;
+            default:
+                desafioIcon = 'star-outline';
     }
 
     return (
@@ -45,7 +53,7 @@ export default function ListaDesafios({ navigation, desafios, registros }: Props
         onPress={() => navigation.navigate('DetalhesDesafio', { idDesafio: item.id })}
       >
         <View style={styles.desafioCardIconPlaceholder}>
-            <Ionicons name={desafioIcon} size={40} color="#689F38" />
+            <Ionicons name={desafioIcon} size={AppDimensions.iconSize.xLarge} color={AppColors.secondary} />
         </View>
         <View style={styles.desafioCardInfo}>
           <Text style={styles.desafioCardTitle}>{item.nome}</Text>
@@ -54,33 +62,34 @@ export default function ListaDesafios({ navigation, desafios, registros }: Props
             Meta: {item.valorMeta} {item.unidade} por {item.frequencia} ({item.duracao} dias)
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={24} color="#555" />
+        <Ionicons name="chevron-forward" size={AppDimensions.iconSize.medium} color={AppColors.darkGray} />
       </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainerList}>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
+      <View style={HeaderStyles.detailHeader}>
+        {navigation.canGoBack() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+            <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+            <Text style={HeaderStyles.backButtonText}>Voltar</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={HeaderStyles.headerTitle}> Todos os Desafios</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
           <Image
             source={require('../assets/better-bite-logo.png')}
-            style={styles.appLogoMassive} 
+            style={HeaderStyles.appLogoHeader}
             accessibilityLabel="BetterBite Logo"
           />
         </TouchableOpacity>
-        
-        {navigation.canGoBack() && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonList}>
-            <Ionicons name="arrow-back" size={28} color="#333" />
-            <Text style={styles.backButtonText}>Voltar</Text>
-          </TouchableOpacity>
-        )}
-
-        <Text style={styles.title}>Todos os Desafios</Text>
+      </View>
+      
+      <View style={styles.contentWrapper}>
         <Image
-          source={require('../assets/desafios-logo.png')} 
+          source={require('../assets/desafios-logo.png')}
           style={styles.screenLogo}
           accessibilityLabel="Logo Desafios"
         />
@@ -89,19 +98,19 @@ export default function ListaDesafios({ navigation, desafios, registros }: Props
       <View style={styles.scrollableContentWrapper}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8BC34A" />
+            <ActivityIndicator size="large" color={AppColors.secondary} />
             <Text style={styles.loadingText}>Carregando desafios...</Text>
           </View>
         ) : (
           <FlatList
-            data={desafios} 
+            data={desafios}
             keyExtractor={(item) => item.id}
             renderItem={renderDesafioItem}
-            showsVerticalScrollIndicator={true} 
+            showsVerticalScrollIndicator={true}
             contentContainerStyle={styles.listContentContainer}
             ListEmptyComponent={() => (
               <View style={styles.emptyListContainer}>
-                <Ionicons name="sad-outline" size={50} color="#CCC" />
+                <Ionicons name="sad-outline" size={AppDimensions.iconSize.xLarge + 10} color={AppColors.lightGray} />
                 <Text style={styles.emptyListText}>Nenhum desafio disponível no momento.</Text>
               </View>
             )}
@@ -115,55 +124,20 @@ export default function ListaDesafios({ navigation, desafios, registros }: Props
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: AppColors.background,
   },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    backgroundColor: '#FFF',
+  contentWrapper: {
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.medium,
     alignItems: 'center',
-    paddingTop: 40, 
+    backgroundColor: AppColors.cardBackground,
+    paddingBottom: AppDimensions.spacing.medium,
   },
-  appLogoContainerList: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 2,
-  },
-    appLogoMassive: { 
-    width: 350, 
-    height: 120, 
-    resizeMode: 'contain',
-  },
-  backButtonList: {
-    position: 'absolute',
-    top: 15,
-    right: 10,
-    zIndex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
-    fontSize: 17,
-    color: '#333',
-    marginLeft: 5,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  screenLogo: { 
+  screenLogo: {
     width: 150,
     height: 100,
     resizeMode: 'contain',
-    marginBottom: 15,
+    marginBottom: AppDimensions.spacing.medium,
   },
   loadingContainer: {
     flex: 1,
@@ -171,25 +145,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: AppDimensions.spacing.small,
     fontSize: 16,
-    color: '#666',
+    color: AppColors.darkGray,
   },
   scrollableContentWrapper: {
     flex: 1,
   },
   listContentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.small,
+    paddingBottom: AppDimensions.spacing.medium,
   },
   desafioCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
+    backgroundColor: AppColors.cardBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    padding: AppDimensions.spacing.medium,
+    marginBottom: AppDimensions.spacing.medium,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -199,11 +173,11 @@ const styles = StyleSheet.create({
   desafioCardIconPlaceholder: {
     width: 60,
     height: 60,
-    borderRadius: 10,
-    backgroundColor: '#E6F4E6',
+    borderRadius: AppDimensions.borderRadius.small,
+    backgroundColor: AppColors.secondary + '1A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: AppDimensions.spacing.medium,
   },
   desafioCardInfo: {
     flex: 1,
@@ -211,27 +185,31 @@ const styles = StyleSheet.create({
   desafioCardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    color: AppColors.text,
+    marginBottom: AppDimensions.spacing.small / 2,
   },
   desafioCardDesc: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
+    color: AppColors.textSecondary,
+    marginBottom: AppDimensions.spacing.small / 4,
   },
   desafioCardMeta: {
     fontSize: 12,
-    color: '#888',
+    color: AppColors.darkGray,
   },
   emptyListContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 50,
+    marginTop: AppDimensions.spacing.xLarge,
+    backgroundColor: AppColors.cardBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    padding: AppDimensions.spacing.large,
   },
   emptyListText: {
     fontSize: 16,
-    color: '#999',
-    marginTop: 10,
+    color: AppColors.placeholder,
+    marginTop: AppDimensions.spacing.medium,
+    textAlign: 'center',
   },
 });

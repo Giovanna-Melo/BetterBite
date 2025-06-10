@@ -3,29 +3,32 @@ import {
   SafeAreaView,
   View,
   Text,
-  ScrollView,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Switch,
-  TextInput,
-  Modal,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Alert
+  ScrollView,
+  Alert,
+  Image,
 } from 'react-native';
-import { Desafio } from '../model/Desafio';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'CriarDesafio'>;
+import { Desafio } from '../model/Desafio';
+import { DesafioUsuario } from '../model/DesafioUsuario';
+import { Usuario } from '../model/Usuario';
+
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'> & {
   desafios: Desafio[];
   setDesafios: React.Dispatch<React.SetStateAction<Desafio[]>>;
+  usuario: Usuario;
+  setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
 };
 
-export default function CriarDesafio({ navigation, desafios, setDesafios }: Props) {
+export default function CriarDesafio({ navigation, desafios, setDesafios, usuario, setDesafiosDoUsuarioState }: Props) {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -35,273 +38,228 @@ export default function CriarDesafio({ navigation, desafios, setDesafios }: Prop
   const [frequencia, setFrequencia] = useState('');
   const [duracao, setDuracao] = useState('');
   const [ativo, setAtivo] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [currentDropdown, setCurrentDropdown] = useState<string | null>(null);
 
-  const tipoMetaOptions = [
-    { label: 'Mínimo', value: 'mínimo' },
-    { label: 'Máximo', value: 'máximo' },
-  ];
-  const unidadeOptions = [
-    { label: 'Gramas (g)', value: 'g' },
-    { label: 'Litros (l)', value: 'l' },
-    { label: 'Unidades', value: 'unidade' },
-    { label: 'Porções', value: 'porção' },
-  ];
-  const frequenciaOptions = [
-    { label: 'Diária', value: 'diária' },
-    { label: 'Semanal', value: 'semanal' },
-    { label: 'Mensal', value: 'mensal' },
-  ];
-
-  const openDropdown = (field: string) => {
-    setCurrentDropdown(field);
-    setModalVisible(true);
-  };
-
-  const selectOption = (value: string) => {
-    if (currentDropdown === 'tipoMeta') setTipoMeta(value);
-    else if (currentDropdown === 'unidade') setUnidade(value);
-    else if (currentDropdown === 'frequencia') setFrequencia(value);
-    setModalVisible(false);
-    setCurrentDropdown(null);
-  };
-
-  const getOptions = () => {
-    if (currentDropdown === 'tipoMeta') return tipoMetaOptions;
-    if (currentDropdown === 'unidade') return unidadeOptions;
-    if (currentDropdown === 'frequencia') return frequenciaOptions;
-    return [];
-  };
-
-  const getLabelByValue = (options: { label: string; value: string }[], value: string) => {
-    const opt = options.find((o) => o.value === value);
-    return opt ? opt.label : 'Selecione...';
-  };
-
-  const addDesafio = () => {
-    if (!nome || !descricao || !categoria || !tipoMeta || !unidade || !frequencia || !valorMeta || !duracao) {
-      alert('Por favor, preencha todos os campos.');
+  const criarDesafio = () => {
+    if (!nome.trim() || !descricao.trim() || !categoria.trim() || !tipoMeta.trim() || !unidade.trim() || !valorMeta.trim() || !frequencia.trim() || !duracao.trim()) {
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
-    const novo = new Desafio(
-      nome,
-      descricao,
+    const valorMetaNum = parseFloat(valorMeta);
+    const duracaoNum = parseInt(duracao, 10);
+
+    if (isNaN(valorMetaNum) || valorMetaNum <= 0 || isNaN(duracaoNum) || duracaoNum <= 0) {
+      Alert.alert('Erro', 'Valor da Meta e Duração devem ser números positivos.');
+      return;
+    }
+
+    const novoDesafio = new Desafio(
+      nome.trim(),
+      descricao.trim(),
       categoria,
       tipoMeta,
-      unidade,
-      parseFloat(valorMeta),
+      unidade.trim(),
+      valorMetaNum,
       frequencia,
-      parseInt(duracao),
+      duracaoNum,
       true,
       ativo
     );
 
-    setDesafios([...desafios, novo]);
+    setDesafios((prev) => [...prev, novoDesafio]);
+
+    const novoDesafioUsuario = new DesafioUsuario(
+      usuario.id,
+      novoDesafio.id,
+      new Date(),
+      new Date(Date.now() + duracaoNum * 24 * 60 * 60 * 1000),
+      'ativo',
+      0
+    );
+    setDesafiosDoUsuarioState((prev) => [...prev, novoDesafioUsuario]);
+
+    Alert.alert('Sucesso', 'Desafio criado e você já está participando!');
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-              <View style={styles.detailHeader}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Ionicons name="arrow-back" size={28} color="#333" />
-                  <Text style={styles.backButtonText}> Voltar</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>Criar Desafio</Text>
-                <View style={{ width: 70 }} /> 
-              </View>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Input label="Nome" value={nome} onChange={setNome} />
-          <Input label="Descrição" value={descricao} onChange={setDescricao} />
-          <Input label="Categoria" value={categoria} onChange={setCategoria} />
-          <DropdownCustom label="Tipo de Meta" value={tipoMeta} onPress={() => openDropdown('tipoMeta')} displayValue={getLabelByValue(tipoMetaOptions, tipoMeta)} />
-          <DropdownCustom label="Unidade" value={unidade} onPress={() => openDropdown('unidade')} displayValue={getLabelByValue(unidadeOptions, unidade)} />
-          <Input label="Valor da Meta" value={valorMeta} onChange={setValorMeta} keyboardType="numeric" />
-          <DropdownCustom label="Frequência" value={frequencia} onPress={() => openDropdown('frequencia')} displayValue={getLabelByValue(frequenciaOptions, frequencia)} />
-          <Input label="Duração (dias)" value={duracao} onChange={setDuracao} keyboardType="numeric" />
-          <SwitchRow label="Ativo?" value={ativo} onValueChange={setAtivo} />
-
-          <TouchableOpacity style={styles.botao} onPress={addDesafio}>
-            <Text style={styles.botaoTexto}>Salvar Desafio</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      <Modal transparent visible={modalVisible} animationType="fade">
-        <TouchableOpacity style={styles.modalBackground} activeOpacity={1} onPress={() => setModalVisible(false)}>
-          <View style={styles.modalContainer}>
-            <FlatList
-              data={getOptions()}
-              keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.option} onPress={() => selectOption(item.value)}>
-                  <Text style={styles.optionText}>{item.label}</Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={HeaderStyles.detailHeader}>
+        <TouchableOpacity
+          style={HeaderStyles.backButtonContainer}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+          <Text style={HeaderStyles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
-      </Modal>
+        <Text style={HeaderStyles.headerTitle}>Criar Desafio</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
+          <Image
+            source={require('../assets/better-bite-logo.png')}
+            style={HeaderStyles.appLogoHeader}
+            accessibilityLabel="BetterBite Logo"
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.formContainer}>
+        <Text style={styles.label}>Nome do Desafio:</Text>
+        <TextInput
+          style={styles.input}
+          value={nome}
+          onChangeText={setNome}
+          placeholder="Ex: Desafio da Água"
+          placeholderTextColor={AppColors.placeholder}
+        />
+
+        <Text style={styles.label}>Descrição:</Text>
+        <TextInput
+          style={styles.input}
+          value={descricao}
+          onChangeText={setDescricao}
+          placeholder="Ex: Beber 8 copos de água por dia."
+          multiline
+          numberOfLines={3}
+          placeholderTextColor={AppColors.placeholder}
+        />
+
+        <Text style={styles.label}>Categoria:</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={categoria}
+            onValueChange={setCategoria}
+            style={styles.picker}
+            itemStyle={{ color: AppColors.textSecondary }}
+          >
+            <Picker.Item label="Selecione..." value="" />
+            <Picker.Item label="Introdução alimentar" value="introdução alimentar" />
+            <Picker.Item label="Refeições" value="refeições" />
+            <Picker.Item label="Bem-estar" value="bem-estar" />
+            <Picker.Item label="Restrição" value="restrição" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>Tipo de Meta:</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={tipoMeta}
+            onValueChange={setTipoMeta}
+            style={styles.picker}
+            itemStyle={{ color: AppColors.textSecondary }}
+          >
+            <Picker.Item label="Selecione..." value="" />
+            <Picker.Item label="Quantidade" value="quantidade" />
+            <Picker.Item label="Tempo" value="tempo" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>Unidade da Meta:</Text>
+        <TextInput
+          style={styles.input}
+          value={unidade}
+          onChangeText={setUnidade}
+          placeholder="Ex: copos, minutos, porções, vezes"
+          placeholderTextColor={AppColors.placeholder}
+        />
+
+        <Text style={styles.label}>Valor da Meta:</Text>
+        <TextInput
+          style={styles.input}
+          value={valorMeta}
+          onChangeText={setValorMeta}
+          keyboardType="numeric"
+          placeholder="Ex: 8 (para 8 copos)"
+          placeholderTextColor={AppColors.placeholder}
+        />
+
+        <Text style={styles.label}>Frequência:</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={frequencia}
+            onValueChange={setFrequencia}
+            style={styles.picker}
+            itemStyle={{ color: AppColors.textSecondary }}
+          >
+            <Picker.Item label="Selecione..." value="" />
+            <Picker.Item label="Diário" value="diario" />
+            <Picker.Item label="Semanal" value="semanal" />
+            <Picker.Item label="Mensal" value="mensal" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>Duração (em dias):</Text>
+        <TextInput
+          style={styles.input}
+          value={duracao}
+          onChangeText={setDuracao}
+          keyboardType="numeric"
+          placeholder="Ex: 7 (para 7 dias)"
+          placeholderTextColor={AppColors.placeholder}
+        />
+
+        <TouchableOpacity style={styles.botao} onPress={criarDesafio}>
+          <Text style={styles.botaoTexto}>Criar Desafio</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Input({ label, value, onChange, keyboardType = 'default' }: { label: string; value: string; onChange: (text: string) => void; keyboardType?: 'default' | 'numeric' }) {
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        keyboardType={keyboardType}
-        style={styles.input}
-        placeholder={label}
-        placeholderTextColor="#aaa"
-      />
-    </View>
-  );
-}
-
-function DropdownCustom({ label, value, onPress, displayValue }: { label: string; value: string; onPress: () => void; displayValue: string }) {
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity style={styles.dropdownCustom} onPress={onPress}>
-        <Text style={[styles.dropdownText, !value && { color: '#aaa' }]}>{displayValue}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function SwitchRow({ label, value, onValueChange }: { label: string; value: boolean; onValueChange: (val: boolean) => void }) {
-  return (
-    <View style={styles.switchRow}>
-      <Text style={styles.label}>{label}</Text>
-      <Switch value={value} onValueChange={onValueChange} />
-    </View>
-  );
-}
-
-const PRIMARY = '#4CAF50';
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: AppColors.background,
   },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
-    fontSize: 17,
-    color: '#333',
-    marginLeft: 5,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 14,
+  formContainer: {
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.large,
+    paddingBottom: AppDimensions.spacing.xLarge,
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 6,
-    color: '#333',
+    color: AppColors.textSecondary,
+    marginBottom: AppDimensions.spacing.small,
+    fontWeight: '600',
   },
   input: {
+    backgroundColor: AppColors.inputBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingVertical: AppDimensions.spacing.small + 2,
+    fontSize: 16,
+    borderColor: AppColors.border,
     borderWidth: 1,
-    borderColor: '#CCC',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    marginBottom: AppDimensions.spacing.medium,
+    color: AppColors.text,
   },
-  dropdownCustom: {
+  pickerWrapper: {
+    backgroundColor: AppColors.inputBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    borderColor: AppColors.border,
     borderWidth: 1,
-    borderColor: '#CCC',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    marginBottom: AppDimensions.spacing.medium,
+    overflow: 'hidden',
   },
-  dropdownText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  button: {
-    backgroundColor: PRIMARY,
-    paddingVertical: 16,
-    borderRadius: 10,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 17,
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  modalContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    maxHeight: 280,
-  },
-  option: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#333',
+  picker: {
+    height: 50,
+    width: '100%',
+    color: AppColors.textSecondary,
   },
   botao: {
-    backgroundColor: '#8BC34A',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 28,
+    backgroundColor: AppColors.primary,
+    paddingVertical: AppDimensions.spacing.medium + 4,
+    borderRadius: AppDimensions.borderRadius.large,
+    marginTop: AppDimensions.spacing.xLarge,
     alignItems: 'center',
   },
   botaoTexto: {

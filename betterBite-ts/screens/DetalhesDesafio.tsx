@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Image, Alert } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,39 +7,53 @@ import { Ionicons } from '@expo/vector-icons';
 import { Desafio } from '../model/Desafio';
 import { DesafioUsuario } from '../model/DesafioUsuario';
 import { RegistroDesafio } from '../model/RegistroDesafio';
+import { Usuario } from '../model/Usuario';
 import { DesafioController } from '../controllers/DesafioController';
 
 import { RootStackParamList } from '../App';
+
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 interface Props {
   desafios: Desafio[];
   registros: DesafioUsuario[];
   registrosDesafio: RegistroDesafio[];
+  usuario: Usuario;
+  setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
 }
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'DetalhesDesafio'>;
 
-export default function DetalhesDesafio({ desafios, registros, registrosDesafio }: Props) {
+export default function DetalhesDesafio({ desafios, registros, registrosDesafio, usuario, setDesafiosDoUsuarioState }: Props) {
   const route = useRoute<RouteProp<RootStackParamList, 'DetalhesDesafio'>>();
   const navigation = useNavigation<NavigationProp>();
 
   const controller = new DesafioController(desafios, registros, registrosDesafio);
   const desafio = controller.buscarPorId(route.params.idDesafio);
 
+  const [isParticipating, setIsParticipating] = useState(false);
+
+  useEffect(() => {
+    if (desafio && usuario) {
+      const alreadyParticipates = controller.usuarioJaParticipa(usuario.id, desafio.id);
+      setIsParticipating(alreadyParticipates);
+    }
+  }, [desafio, usuario, registros]);
+
   if (!desafio) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
-        <View style={styles.detailHeader}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="#333" />
-            <Text style={styles.backButtonText}>Voltar</Text>
+        <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
+        <View style={HeaderStyles.detailHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+            <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+            <Text style={HeaderStyles.backButtonText}>Voltar</Text>
           </TouchableOpacity>
-          <Text style={styles.detailTitle}>Desafio não encontrado</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainer}>
+          <Text style={HeaderStyles.headerTitle}>Desafio não encontrado</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
             <Image
               source={require('../assets/better-bite-logo.png')}
-              style={styles.appLogoMassive}
+              style={HeaderStyles.appLogoHeader}
               accessibilityLabel="BetterBite Logo"
             />
           </TouchableOpacity>
@@ -48,12 +62,37 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
     );
   }
 
+  const progressoGeral = controller.progressoPorDesafio(desafio.id);
+  const registrosLista = controller.registrosDoDesafio(desafio.id);
+
   function irParaCriarRegistro() {
     navigation.navigate('CriarRegistroDesafio', { idDesafio: desafio!.id });
   }
 
-  const progressoGeral = controller.progressoPorDesafio(desafio.id);
-  const registrosLista = controller.registrosDoDesafio(desafio.id);
+  const handleParticiparDesafio = () => {
+    if (!usuario) {
+      Alert.alert('Erro', 'Você precisa estar logado para participar de um desafio.');
+      return;
+    }
+    if (isParticipating) {
+      Alert.alert('Informação', 'Você já está participando deste desafio!');
+      return;
+    }
+
+    const novoDesafioUsuario = new DesafioUsuario(
+      usuario.id,
+      desafio.id,
+      new Date(),
+      new Date(Date.now() + desafio.duracao * 24 * 60 * 60 * 1000),
+      'ativo',
+      0
+    );
+
+    setDesafiosDoUsuarioState((prev) => [...prev, novoDesafioUsuario]);
+    setIsParticipating(true);
+    Alert.alert('Sucesso', `Você está participando do desafio "${desafio.nome}"!`);
+    navigation.navigate('Home');
+  };
 
   const registrosPorData = Array.from(
     registrosLista.reduce((acc, reg) => {
@@ -65,7 +104,6 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
   ).sort((a, b) => (a[0] < b[0] ? 1 : -1));
 
   const registroUsuarioAtivo = registros.find(r => r.desafioId === desafio.id);
-
   const dataInicioFormatada = registroUsuarioAtivo?.dataInicio
     ? registroUsuarioAtivo.dataInicio.toLocaleDateString()
     : 'N/A';
@@ -75,18 +113,18 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
 
-      <View style={styles.detailHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="#333" />
-          <Text style={styles.backButtonText}>Voltar</Text>
+      <View style={HeaderStyles.detailHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+          <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+          <Text style={HeaderStyles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.detailTitle}>{desafio.nome}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainer}>
+        <Text style={HeaderStyles.headerTitle}>{desafio.nome}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
           <Image
             source={require('../assets/better-bite-logo.png')}
-            style={styles.appLogoMassive}
+            style={HeaderStyles.appLogoHeader}
             accessibilityLabel="BetterBite Logo"
           />
         </TouchableOpacity>
@@ -94,6 +132,17 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <Text style={styles.desc}>{desafio.descricao}</Text>
+
+        {!isParticipating ? (
+          <TouchableOpacity style={styles.participarButton} onPress={handleParticiparDesafio}>
+            <Text style={styles.participarButtonText}>Participar do Desafio!</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.alreadyParticipatingContainer}>
+            <Ionicons name="checkmark-circle-outline" size={AppDimensions.iconSize.large} color={AppColors.primary} />
+            <Text style={styles.alreadyParticipatingText}>Você já está participando!</Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detalhes do Desafio</Text>
@@ -140,7 +189,7 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
               <Text style={styles.registroText}>
                 {new Date(dataStr).toLocaleDateString()} - {totalConsumo} {desafio.unidade}
               </Text>
-              <Text style={{ color: controller.metaDiariaAtingida(desafio.id, totalConsumo) ? '#4CAF50' : '#D32F2F' }}>
+              <Text style={{ color: controller.metaDiariaAtingida(desafio.id, totalConsumo) ? AppColors.primary : AppColors.error }}>
                 {controller.metaDiariaAtingida(desafio.id, totalConsumo) ? '✅ Meta Atingida' : '❌ Meta Não Atingida'}
               </Text>
             </View>
@@ -148,9 +197,11 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={irParaCriarRegistro}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+      {isParticipating && (
+        <TouchableOpacity style={styles.fab} onPress={irParaCriarRegistro}>
+          <Ionicons name="add" size={AppDimensions.iconSize.large} color="#fff" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -158,67 +209,54 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: AppColors.background,
   },
-  detailHeader: {
-    flexDirection: 'row',
+  contentContainer: {
+    padding: AppDimensions.spacing.medium,
+    paddingBottom: AppDimensions.spacing.xLarge * 2,
+  },
+  desc: {
+    fontSize: 16,
+    color: AppColors.textSecondary,
+    marginBottom: AppDimensions.spacing.medium,
+  },
+  participarButton: {
+    backgroundColor: AppColors.primary,
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.medium,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    marginBottom: AppDimensions.spacing.large,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
-  backButton: {
+  participarButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  alreadyParticipatingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingRight: 10,
+    justifyContent: 'center',
+    backgroundColor: AppColors.secondary + '1A',
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.medium,
+    marginBottom: AppDimensions.spacing.large,
   },
-  backButtonText: {
-    fontSize: 17,
-    color: '#333',
-    marginLeft: 5,
-  },
-  detailTitle: {
-    flex: 1,
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginHorizontal: 10,
-  },
-  appLogoContainer: {
-    position: 'absolute',
-    right: 10,
-    top: 10,
-    zIndex: 1,
-  },
-  appLogoMassive: { 
-    width: 350, 
-    height: 120, 
-    resizeMode: 'contain',
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  desc: {
+  alreadyParticipatingText: {
+    color: AppColors.primary,
     fontSize: 16,
-    color: '#555',
-    marginBottom: 16,
+    fontWeight: 'bold',
+    marginLeft: AppDimensions.spacing.small,
   },
   section: {
-    marginBottom: 24,
-    padding: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
+    marginBottom: AppDimensions.spacing.xLarge,
+    padding: AppDimensions.spacing.medium,
+    backgroundColor: AppColors.cardBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -228,59 +266,61 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#222',
+    marginBottom: AppDimensions.spacing.medium,
+    color: AppColors.text,
   },
   infoText: {
     fontSize: 15,
-    marginBottom: 6,
-    color: '#444',
+    marginBottom: AppDimensions.spacing.small / 2,
+    color: AppColors.textSecondary,
   },
   progressBox: {
-    marginBottom: 24,
-    paddingHorizontal: 12,
+    marginBottom: AppDimensions.spacing.xLarge,
+    paddingHorizontal: AppDimensions.spacing.medium,
   },
   progressText: {
     fontWeight: '600',
     fontSize: 15,
-    marginBottom: 6,
-    color: '#333',
+    marginBottom: AppDimensions.spacing.small / 2,
+    color: AppColors.text,
   },
   progressBarBackground: {
     width: '100%',
     height: 14,
-    backgroundColor: '#EEE',
+    backgroundColor: AppColors.border,
     borderRadius: 7,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#4CAF50',
+    backgroundColor: AppColors.primary,
   },
   progressPercent: {
-    marginTop: 4,
+    marginTop: AppDimensions.spacing.small / 2,
     fontWeight: 'bold',
     fontSize: 14,
-    color: '#333',
+    color: AppColors.text,
     textAlign: 'right',
   },
   subtitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
+    marginBottom: AppDimensions.spacing.small,
+    color: AppColors.text,
   },
   semRegistro: {
     fontStyle: 'italic',
-    color: '#999',
+    color: AppColors.placeholder,
+    textAlign: 'center',
+    marginTop: AppDimensions.spacing.small,
   },
   registroItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
-    backgroundColor: '#FFF',
-    padding: 8,
-    borderRadius: 6,
+    marginBottom: AppDimensions.spacing.small,
+    backgroundColor: AppColors.cardBackground,
+    padding: AppDimensions.spacing.small,
+    borderRadius: AppDimensions.borderRadius.small,
     shadowColor: '#000',
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -289,13 +329,13 @@ const styles = StyleSheet.create({
   },
   registroText: {
     fontSize: 15,
-    color: '#444',
+    color: AppColors.textSecondary,
   },
   fab: {
     position: 'absolute',
-    bottom: 30,
-    right: 20,
-    backgroundColor: '#4CAF50',
+    bottom: AppDimensions.spacing.xLarge,
+    right: AppDimensions.spacing.medium,
+    backgroundColor: AppColors.primary,
     width: 60,
     height: 60,
     borderRadius: 30,

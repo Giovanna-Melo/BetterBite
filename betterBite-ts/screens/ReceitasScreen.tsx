@@ -8,6 +8,8 @@ import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TagNutricional } from '../model/TagNutricional';
 
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Receitas'>;
 
 export default function ReceitasScreen({ navigation }: Props) {
@@ -32,7 +34,7 @@ export default function ReceitasScreen({ navigation }: Props) {
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prevTagIds) =>
       prevTagIds.includes(tagId)
-        ? prevTagIds.filter((id) => id !== tagId)
+        ? prevTagIds.filter((t) => t !== tagId)
         : [...prevTagIds, tagId]
     );
   };
@@ -42,18 +44,19 @@ export default function ReceitasScreen({ navigation }: Props) {
   if (selecionada) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
-        <View style={styles.detailHeader}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoMassive}>
+        <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
+        <View style={HeaderStyles.detailHeader}>
+          <TouchableOpacity onPress={() => setSelecionada(null)} style={HeaderStyles.backButtonContainer}>
+            <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+            <Text style={HeaderStyles.backButtonText}>Voltar</Text>
+          </TouchableOpacity>
+          <Text style={HeaderStyles.headerTitle}>Detalhes da Receita</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
             <Image
               source={require('../assets/better-bite-logo.png')}
-              style={styles.appLogoMassive}
+              style={HeaderStyles.appLogoHeader}
               accessibilityLabel="BetterBite Logo"
             />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSelecionada(null)} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="#333" />
-            <Text style={styles.backButtonText}>Voltar</Text>
           </TouchableOpacity>
         </View>
         <ReceitaCard receita={selecionada} />
@@ -63,22 +66,25 @@ export default function ReceitasScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainerList}>
-            <Image
-              source={require('../assets/better-bite-logo.png')}
-              style={styles.appLogoMassive}
-              accessibilityLabel="BetterBite Logo"
-            />
-        </TouchableOpacity>
-        {navigation.canGoBack() && ( 
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonList}>
-            <Ionicons name="arrow-back" size={28} color="#333" />
-            <Text style={styles.backButtonText}>Voltar</Text>
+      <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
+      <View style={HeaderStyles.detailHeader}> 
+        {navigation.canGoBack() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+            <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+            <Text style={HeaderStyles.backButtonText}>Voltar</Text>
           </TouchableOpacity>
         )}
-        <Text style={styles.title}>Receitas Saudáveis</Text>
+        <Text style={HeaderStyles.headerTitle}>Receitas Saudáveis</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
+          <Image
+            source={require('../assets/better-bite-logo.png')}
+            style={HeaderStyles.appLogoHeader}
+            accessibilityLabel="BetterBite Logo"
+          />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.contentWrapper}>
         <Image
           source={require('../assets/receitas-logo.png')}
           style={styles.screenLogo}
@@ -87,7 +93,7 @@ export default function ReceitasScreen({ navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder="Buscar por nome ou ingrediente..."
-          placeholderTextColor="#999"
+          placeholderTextColor={AppColors.placeholder}
           value={filtro}
           onChangeText={setFiltro}
         />
@@ -100,13 +106,13 @@ export default function ReceitasScreen({ navigation }: Props) {
               key={tag.id}
               style={[
                 styles.tagButton,
-                selectedTagIds.includes(tag.id) ? styles.tagButtonSelected : {} 
+                selectedTagIds.includes(tag.id) ? styles.tagButtonSelected : {}
               ]}
               onPress={() => toggleTag(tag.id)}
             >
               <Text style={[
                 styles.tagButtonText,
-                selectedTagIds.includes(tag.id) ? styles.tagButtonTextSelected : {} 
+                selectedTagIds.includes(tag.id) ? styles.tagButtonTextSelected : {}
               ]}>
                 {tag.nome}
               </Text>
@@ -118,7 +124,7 @@ export default function ReceitasScreen({ navigation }: Props) {
       <View style={styles.scrollableContentWrapper}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8BC34A" />
+            <ActivityIndicator size="large" color={AppColors.secondary} />
             <Text style={styles.loadingText}>Carregando receitas...</Text>
           </View>
         ) : (
@@ -144,14 +150,14 @@ export default function ReceitasScreen({ navigation }: Props) {
                       </View>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={24} color="#888" />
+                <Ionicons name="chevron-forward" size={AppDimensions.iconSize.medium} color={AppColors.darkGray} />
               </TouchableOpacity>
             )}
             showsVerticalScrollIndicator={true}
             contentContainerStyle={styles.listContentContainer}
             ListEmptyComponent={() => (
               <View style={styles.emptyListContainer}>
-                <Ionicons name="sad-outline" size={50} color="#CCC" />
+                <Ionicons name="sad-outline" size={AppDimensions.iconSize.xLarge + 10} color={AppColors.lightGray} />
                 <Text style={styles.emptyListText}>Nenhuma receita encontrada para os filtros aplicados.</Text>
               </View>
             )}
@@ -165,81 +171,36 @@ export default function ReceitasScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: AppColors.background,
   },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    backgroundColor: '#FFF',
+  contentWrapper: {
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.medium,
     alignItems: 'center',
-  },
-  appLogoContainerList: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 1,
-  },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  appLogoMassive: {
-    width: 300,
-    height: 100,
-    resizeMode: 'contain',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    position: 'absolute',
-    right: 10,
-    top: 15,
-    zIndex: 2,
-  },
-  backButtonText: {
-    fontSize: 17,
-    color: '#333',
-    marginLeft: 5,
-  },
-  backButtonList: { 
-    position: 'absolute',
-    top: 15,
-    right: 10,
-    zIndex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    backgroundColor: AppColors.cardBackground,
+    paddingBottom: AppDimensions.spacing.medium,
   },
   title: {
-    fontSize: 28,
+    fontSize: AppDimensions.iconSize.large,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-    marginTop: 20,
+    color: AppColors.text,
+    marginBottom: AppDimensions.spacing.small,
+    marginTop: AppDimensions.spacing.medium,
     textAlign: 'center',
   },
   screenLogo: {
     width: 150,
     height: 100,
     resizeMode: 'contain',
-    marginBottom: 15,
+    marginBottom: AppDimensions.spacing.medium,
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    backgroundColor: AppColors.inputBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingVertical: AppDimensions.spacing.small + 2,
     fontSize: 16,
-    borderColor: '#E0E0E0',
+    borderColor: AppColors.border,
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -250,30 +211,30 @@ const styles = StyleSheet.create({
   },
   tagsContainer: {
     height: 60,
-    backgroundColor: '#F0F0F0',
-    paddingVertical: 8,
+    backgroundColor: AppColors.extraLightGray,
+    paddingVertical: AppDimensions.spacing.small,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: AppColors.border,
   },
   tagsScrollViewContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: AppDimensions.spacing.medium,
     alignItems: 'center',
   },
   tagButton: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginRight: 10,
-    borderColor: '#CCC',
+    backgroundColor: AppColors.lightGray,
+    borderRadius: AppDimensions.borderRadius.large,
+    paddingVertical: AppDimensions.spacing.small,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    marginRight: AppDimensions.spacing.small,
+    borderColor: AppColors.border,
     borderWidth: 1,
   },
   tagButtonSelected: {
-    backgroundColor: '#8BC34A',
-    borderColor: '#689F38',
+    backgroundColor: AppColors.primary,
+    borderColor: AppColors.primary,
   },
   tagButtonText: {
-    color: '#555',
+    color: AppColors.textSecondary,
     fontWeight: 'bold',
     fontSize: 14,
   },
@@ -286,71 +247,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: AppDimensions.spacing.small,
     fontSize: 16,
-    color: '#666',
+    color: AppColors.darkGray,
   },
   scrollableContentWrapper: {
     flex: 1,
   },
   listContentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.small,
+    paddingBottom: AppDimensions.spacing.medium,
   },
   itemBox: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: AppColors.cardBackground,
+    padding: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.medium,
+    marginBottom: AppDimensions.spacing.medium,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
   },
   itemContent: {
     flex: 1,
-    marginRight: 10,
+    marginRight: AppDimensions.spacing.small,
   },
   itemTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: AppColors.text,
+    marginBottom: AppDimensions.spacing.small / 2,
   },
   itemCalories: {
     fontSize: 14,
-    color: '#777',
+    color: AppColors.textSecondary,
   },
-  itemTagsContainer: { 
+  itemTagsContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      marginTop: 5,
+      marginTop: AppDimensions.spacing.small,
   },
-  itemTagText: { 
+  itemTagText: {
       fontSize: 10,
-      backgroundColor: '#E6F4E6', 
-      color: '#689F38', 
-      borderRadius: 5,
-      paddingHorizontal: 6,
-      paddingVertical: 3,
-      marginRight: 5,
-      marginBottom: 5,
+      backgroundColor: AppColors.secondary + '1A',
+      color: AppColors.secondary,
+      borderRadius: AppDimensions.borderRadius.small,
+      paddingHorizontal: AppDimensions.spacing.small,
+      paddingVertical: AppDimensions.spacing.small / 2,
+      marginRight: AppDimensions.spacing.small / 2,
+      marginBottom: AppDimensions.spacing.small / 2,
       fontWeight: 'bold',
   },
   emptyListContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 50,
+    marginTop: AppDimensions.spacing.xLarge,
+    backgroundColor: AppColors.cardBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    padding: AppDimensions.spacing.large,
   },
   emptyListText: {
     fontSize: 16,
-    color: '#999',
-    marginTop: 10,
+    color: AppColors.placeholder,
+    marginTop: AppDimensions.spacing.medium,
+    textAlign: 'center',
   },
 });

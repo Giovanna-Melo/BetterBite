@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from "react-native";
 import { Usuario } from "../model/Usuario";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -14,6 +7,8 @@ import { RootStackParamList } from "../App";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { usuariosMock } from "../mocks/usuarioMock";
+
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditarUsuario"> & {
   usuario: Usuario;
@@ -31,20 +26,20 @@ export default function EditarUsuarioScreen({
   const [restricoes, setRestricoes] = useState(
     usuario.restricoesAlimentares.join(", ")
   );
+
   const salvarAlteracoes = async () => {
     try {
       const usuarioAtualizado = new Usuario(
-        nome,
+        nome.trim(),
         usuario.email,
         usuario.senhaHash,
         usuario.dataNascimento,
         usuario.genero,
         parseFloat(peso),
         parseFloat(altura),
-        restricoes.split(",").map((r) => r.trim())
+        restricoes.trim() ? restricoes.split(",").map((r) => r.trim()) : []
       );
 
-      // Atualiza AsyncStorage
       const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
       let usuarios: Usuario[] = usuariosData ? JSON.parse(usuariosData) : [];
 
@@ -62,7 +57,6 @@ export default function EditarUsuarioScreen({
       );
       setUsuario(usuarioAtualizado);
 
-      // Atualiza o mock em memória
       const indexMock = usuariosMock.findIndex(
         (u) => u.email === usuario.email
       );
@@ -80,22 +74,30 @@ export default function EditarUsuarioScreen({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-          <Text style={styles.backButtonText}>Voltar</Text>
+      {/* Cabeçalho Responsivo */}
+      <View style={HeaderStyles.detailHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+          <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+          <Text style={HeaderStyles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
+        <Text style={HeaderStyles.headerTitle}>Editar Perfil</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
+          <Image
+            source={require('../assets/better-bite-logo.png')}
+            style={HeaderStyles.appLogoHeader}
+            accessibilityLabel="BetterBite Logo"
+          />
+        </TouchableOpacity>
+      </View>
 
-        <Text style={styles.title}>Editar Perfil</Text>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.label}>Nome:</Text>
         <TextInput
           style={styles.input}
           placeholder="Nome"
           value={nome}
           onChangeText={setNome}
+          placeholderTextColor={AppColors.placeholder}
         />
         <Text style={styles.label}>Email:</Text>
         <TextInput
@@ -103,6 +105,7 @@ export default function EditarUsuarioScreen({
           placeholder="Email"
           value={usuario.email}
           editable={false}
+          placeholderTextColor={AppColors.placeholder}
         />
         <Text style={styles.label}>Peso:</Text>
         <TextInput
@@ -111,6 +114,7 @@ export default function EditarUsuarioScreen({
           keyboardType="numeric"
           value={peso}
           onChangeText={setPeso}
+          placeholderTextColor={AppColors.placeholder}
         />
         <Text style={styles.label}>Altura:</Text>
         <TextInput
@@ -119,6 +123,7 @@ export default function EditarUsuarioScreen({
           keyboardType="numeric"
           value={altura}
           onChangeText={setAltura}
+          placeholderTextColor={AppColors.placeholder}
         />
         <Text style={styles.label}>
           Restrições alimentares(separadas por vírgula):
@@ -128,6 +133,7 @@ export default function EditarUsuarioScreen({
           placeholder="Restrições alimentares (separadas por vírgula)"
           value={restricoes}
           onChangeText={setRestricoes}
+          placeholderTextColor={AppColors.placeholder}
         />
 
         <TouchableOpacity style={styles.button} onPress={salvarAlteracoes}>
@@ -141,28 +147,21 @@ export default function EditarUsuarioScreen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.background,
   },
-  container: {
-    backgroundColor: "#F0F4F8",
-    padding: 20,
-    flexGrow: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#2C3E50",
-    marginBottom: 25,
-    textAlign: "center",
+  container: { 
+    padding: AppDimensions.spacing.medium,
+    flexGrow: 1, 
+    backgroundColor: AppColors.background,
   },
   input: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: AppColors.inputBackground,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingVertical: AppDimensions.spacing.small + 2,
+    borderRadius: AppDimensions.borderRadius.medium,
     fontSize: 16,
-    marginBottom: 15,
-    borderColor: "#d1d5db",
+    marginBottom: AppDimensions.spacing.medium,
+    borderColor: AppColors.border,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.05,
@@ -170,41 +169,29 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   inputDisabled: {
-    backgroundColor: "#e5e7eb",
-    color: "#6b7280",
+    backgroundColor: AppColors.extraLightGray, 
+    color: AppColors.darkGray,
   },
   button: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 14,
-    borderRadius: 15,
+    backgroundColor: AppColors.primary,
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.large,
     alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#4CAF50",
+    marginTop: AppDimensions.spacing.medium,
+    shadowColor: AppColors.primary,
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 3,
   },
   buttonText: {
-    color: "#fff",
+    color: '#fff',
     fontWeight: "700",
     fontSize: 18,
   },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
+  label: { 
     fontSize: 16,
-    marginLeft: 6,
-    color: "#333",
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 5,
-    marginLeft: 2,
+    fontWeight: "600",
+    marginBottom: AppDimensions.spacing.small / 2,
+    color: AppColors.text,
   },
 });
