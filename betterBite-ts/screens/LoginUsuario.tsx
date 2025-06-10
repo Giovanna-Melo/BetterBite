@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
 import { Usuario } from "../model/Usuario";
 import { usuariosMock } from "../mocks/usuarioMock";
+
+import { AppColors, AppDimensions } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login"> & {
   setUsuario: (usuario: Usuario) => void;
@@ -30,37 +33,35 @@ export default function Login({ navigation, setUsuario }: Props) {
     setErroSenha("");
     setErroLogin("");
 
-    if (!email) {
+    if (!email.trim()) {
       setErroEmail("Digite o email.");
       valido = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
       setErroEmail("Formato de email inválido.");
       valido = false;
     }
 
-    if (!senha) {
+    if (!senha.trim()) {
       setErroSenha("Digite a senha.");
       valido = false;
     }
 
     return valido;
   };
+
   const handleLogin = async () => {
     if (!validarCampos()) return;
 
     try {
-      // Pega os usuários do AsyncStorage
       const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
       const usuariosAsync: Usuario[] = usuariosData
         ? JSON.parse(usuariosData)
         : [];
 
-      // Procura no AsyncStorage
       let usuario = usuariosAsync.find(
         (u) => u.email === email && u.senhaHash === senha
       );
 
-      // Se não encontrou no AsyncStorage, procura no mock
       if (!usuario) {
         usuario = usuariosMock.find(
           (u) => u.email === email && u.senhaHash === senha
@@ -84,7 +85,11 @@ export default function Login({ navigation, setUsuario }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.appName}>BetterBite</Text>
+        <Image
+          source={require('../assets/better-bite-logo.png')}
+          style={styles.logoLogin}
+          accessibilityLabel="BetterBite Logo"
+        />
       </View>
 
       <Text style={styles.title}>Login</Text>
@@ -100,7 +105,7 @@ export default function Login({ navigation, setUsuario }: Props) {
         }}
         keyboardType="email-address"
         autoCapitalize="none"
-        placeholderTextColor="#999"
+        placeholderTextColor={AppColors.placeholder}
       />
       {erroEmail ? <Text style={styles.erroTexto}>{erroEmail}</Text> : null}
 
@@ -114,7 +119,7 @@ export default function Login({ navigation, setUsuario }: Props) {
           setErroSenha("");
           setErroLogin("");
         }}
-        placeholderTextColor="#999"
+        placeholderTextColor={AppColors.placeholder}
       />
       {erroSenha ? <Text style={styles.erroTexto}>{erroSenha}</Text> : null}
 
@@ -137,37 +142,42 @@ export default function Login({ navigation, setUsuario }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0F4F8",
-    paddingHorizontal: 30,
+    backgroundColor: AppColors.background,
+    paddingHorizontal: AppDimensions.spacing.large,
     justifyContent: "center",
   },
   header: {
     alignItems: "center",
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-    marginBottom: 30,
+    paddingVertical: AppDimensions.spacing.medium,
+    marginBottom: AppDimensions.spacing.large,
+  },
+  logoLogin: {
+    width: AppDimensions.logo.login.width,
+    height: AppDimensions.logo.login.height,
+    resizeMode: 'contain',
+    marginBottom: AppDimensions.spacing.large,
   },
   appName: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#4CAF50",
+    color: AppColors.primary,
+    display: 'none',
   },
   title: {
-    fontSize: 28,
+    fontSize: AppDimensions.iconSize.large,
     fontWeight: "700",
-    color: "#2C3E50",
-    marginBottom: 40,
+    color: AppColors.text,
+    marginBottom: AppDimensions.spacing.xLarge,
     textAlign: "center",
   },
   input: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 15,
+    backgroundColor: AppColors.inputBackground,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingVertical: AppDimensions.spacing.small + 4,
+    borderRadius: AppDimensions.borderRadius.large,
     fontSize: 16,
-    marginBottom: 5,
-    borderColor: "#d1d5db",
+    marginBottom: AppDimensions.spacing.small,
+    borderColor: AppColors.border,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.05,
@@ -175,44 +185,44 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   inputErro: {
-    borderColor: "#e74c3c",
+    borderColor: AppColors.error,
   },
   erroTexto: {
-    color: "#e74c3c",
-    marginBottom: 10,
+    color: AppColors.error,
+    marginBottom: AppDimensions.spacing.small + 2,
     marginLeft: 5,
     fontSize: 14,
   },
   erroLogin: {
-    color: "#e74c3c",
+    color: AppColors.error,
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: AppDimensions.spacing.medium,
     fontSize: 15,
   },
   loginButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 14,
-    borderRadius: 15,
+    backgroundColor: AppColors.primary,
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.large,
     alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#4CAF50",
+    marginTop: AppDimensions.spacing.small,
+    shadowColor: AppColors.primary,
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 3,
   },
   registerButton: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 14,
-    borderRadius: 15,
+    backgroundColor: AppColors.accentBlue,
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.large,
     alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#2196F3",
+    marginTop: AppDimensions.spacing.small,
+    shadowColor: AppColors.accentBlue,
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 3,
   },
   buttonText: {
-    color: "#fff",
+    color: '#fff',
     fontWeight: "700",
     fontSize: 18,
   },
