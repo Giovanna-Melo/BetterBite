@@ -1,20 +1,15 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
-import { Usuario } from "../model/Usuario";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Usuario } from "../model/Usuario";
+
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, "CadastrarUsuario"> & {
   setUsuario: (usuario: Usuario) => void;
@@ -34,14 +29,14 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
   const validarCampos = () => {
     const novosErros: { [key: string]: string } = {};
-    if (!nome) novosErros.nome = "Informe o nome.";
-    if (!email || !email.includes("@")) novosErros.email = "Email inválido.";
-    if (!senha || senha.length < 6) novosErros.senha = "Senha muito curta.";
-    if (!dataNascimento || isNaN(Date.parse(dataNascimento)))
+    if (!nome.trim()) novosErros.nome = "Informe o nome.";
+    if (!email.trim() || !email.includes("@")) novosErros.email = "Email inválido.";
+    if (!senha.trim() || senha.length < 6) novosErros.senha = "Senha muito curta.";
+    if (!dataNascimento.trim() || isNaN(Date.parse(dataNascimento)))
       novosErros.dataNascimento = "Data inválida (use YYYY-MM-DD).";
     if (!genero) novosErros.genero = "Selecione um gênero.";
-    if (!peso || isNaN(parseFloat(peso))) novosErros.peso = "Peso inválido.";
-    if (!altura || isNaN(parseFloat(altura)))
+    if (!peso.trim() || isNaN(parseFloat(peso))) novosErros.peso = "Peso inválido.";
+    if (!altura.trim() || isNaN(parseFloat(altura)))
       novosErros.altura = "Altura inválida.";
 
     setErros(novosErros);
@@ -53,15 +48,15 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
     try {
       const novoUsuario = new Usuario(
-        nome,
-        email,
-        senha,
-        new Date(dataNascimento.split("/").reverse().join("-")),
+        nome.trim(),
+        email.trim(),
+        senha.trim(),
+        new Date(dataNascimento.split("/").reverse().join("-")), 
 
         genero as "masculino" | "feminino" | "outro",
         parseFloat(peso),
         parseFloat(altura),
-        restricoes ? restricoes.split(",").map((r) => r.trim()) : []
+        restricoes.trim() ? restricoes.split(",").map((r) => r.trim()) : []
       );
 
       const usuariosSalvos = await AsyncStorage.getItem("usuariosCadastrados");
@@ -96,7 +91,7 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
   };
 
   const formatarDataAmericana = (texto: string) => {
-    const numeros = texto.replace(/\D/g, "").slice(0, 8); // Apenas números, máx. 8 dígitos
+    const numeros = texto.replace(/\D/g, "").slice(0, 8);
     let formatado = "";
 
     if (numeros.length <= 4) {
@@ -113,61 +108,71 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
     return formatado;
   };
 
-  function formatarDataParaISO(data: string): string {
-    const [dia, mes, ano] = data.split("/");
-    return `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
-  }
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-          <Text style={styles.backButtonText}>Voltar</Text>
+      <View style={HeaderStyles.detailHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+          <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+          <Text style={HeaderStyles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
-
-        <Text style={styles.title}>Cadastro de Usuário</Text>
-
+        <Text style={HeaderStyles.headerTitle}>Cadastro de Usuário</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
+          <Image
+            source={require('../assets/better-bite-logo.png')}
+            style={HeaderStyles.appLogoHeader}
+            accessibilityLabel="BetterBite Logo"
+          />
+        </TouchableOpacity>
+      </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.label}>Nome:</Text>
         <TextInput
           style={styles.input}
           placeholder="Nome"
           value={nome}
           onChangeText={setNome}
+          placeholderTextColor={AppColors.placeholder}
         />
         {erros.nome && <Text style={styles.errorText}>{erros.nome}</Text>}
 
+        <Text style={styles.label}>Email:</Text>
         <TextInput
           style={styles.input}
           placeholder="Email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          placeholderTextColor={AppColors.placeholder}
         />
         {erros.email && <Text style={styles.errorText}>{erros.email}</Text>}
 
+        <Text style={styles.label}>Senha:</Text>
         <TextInput
           style={styles.input}
           placeholder="Senha"
           secureTextEntry
           value={senha}
           onChangeText={setSenha}
+          placeholderTextColor={AppColors.placeholder}
         />
         {erros.senha && <Text style={styles.errorText}>{erros.senha}</Text>}
 
+        <Text style={styles.label}>Data de Nascimento (YYYY-MM-DD):</Text>
         <TextInput
           style={styles.input}
-          placeholder="Data de Nascimento (yyyy-mm-dd)"
+          placeholder="AAAA-MM-DD"
           keyboardType="numeric"
           maxLength={10}
           value={dataNascimento}
           onChangeText={(texto) =>
             setDataNascimento(formatarDataAmericana(texto))
           }
+          placeholderTextColor={AppColors.placeholder}
         />
+        {erros.dataNascimento && <Text style={styles.errorText}>{erros.dataNascimento}</Text>}
 
-        <Text style={styles.label}>Gênero</Text>
+
+        <Text style={styles.label}>Gênero:</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={genero}
@@ -182,29 +187,37 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
         </View>
         {erros.genero && <Text style={styles.errorText}>{erros.genero}</Text>}
 
+        <Text style={styles.label}>Peso (kg):</Text>
         <TextInput
           style={styles.input}
           placeholder="Peso (kg)"
           keyboardType="numeric"
           value={peso}
           onChangeText={setPeso}
+          placeholderTextColor={AppColors.placeholder}
         />
         {erros.peso && <Text style={styles.errorText}>{erros.peso}</Text>}
 
+        <Text style={styles.label}>Altura (cm):</Text>
         <TextInput
           style={styles.input}
           placeholder="Altura (cm)"
           keyboardType="numeric"
           value={altura}
           onChangeText={setAltura}
+          placeholderTextColor={AppColors.placeholder}
         />
         {erros.altura && <Text style={styles.errorText}>{erros.altura}</Text>}
 
+        <Text style={styles.label}>
+          Restrições alimentares (separadas por vírgula):
+        </Text>
         <TextInput
           style={styles.input}
-          placeholder="Restrições alimentares (separadas por vírgula)"
+          placeholder="Ex: glúten, lactose, amendoim"
           value={restricoes}
           onChangeText={setRestricoes}
+          placeholderTextColor={AppColors.placeholder}
         />
 
         <TouchableOpacity style={styles.button} onPress={handleSalvar}>
@@ -218,73 +231,58 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.background,
   },
   container: {
-    backgroundColor: "#F0F4F8",
-    padding: 20,
+    padding: AppDimensions.spacing.medium,
     flexGrow: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#2C3E50",
-    marginBottom: 25,
-    textAlign: "center",
+    backgroundColor: AppColors.background,
   },
   input: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: AppColors.inputBackground,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingVertical: AppDimensions.spacing.small + 2,
+    borderRadius: AppDimensions.borderRadius.medium,
     fontSize: 16,
-    marginBottom: 10,
-    borderColor: "#d1d5db",
+    marginBottom: AppDimensions.spacing.medium,
+    borderColor: AppColors.border,
     borderWidth: 1,
   },
   label: {
     fontWeight: "600",
-    marginBottom: 8,
-    color: "#2C3E50",
+    marginBottom: AppDimensions.spacing.small / 2,
+    color: AppColors.text,
+    fontSize: 16,
   },
   pickerWrapper: {
-    backgroundColor: "#fff",
-    borderColor: "#d1d5db",
+    backgroundColor: AppColors.inputBackground,
+    borderColor: AppColors.border,
     borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 10,
+    borderRadius: AppDimensions.borderRadius.medium,
+    marginBottom: AppDimensions.spacing.medium,
     overflow: "hidden",
   },
   picker: {
     height: 50,
     width: "100%",
+    color: AppColors.textSecondary, 
   },
   button: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 14,
-    borderRadius: 15,
+    backgroundColor: AppColors.primary,
+    paddingVertical: AppDimensions.spacing.medium,
+    borderRadius: AppDimensions.borderRadius.large,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: AppDimensions.spacing.medium,
   },
   buttonText: {
-    color: "#fff",
+    color: '#fff',
     fontWeight: "700",
     fontSize: 18,
   },
-  errorText: {
-    color: "red",
-    marginBottom: 10,
+  errorText: { 
+    color: AppColors.error,
+    marginBottom: AppDimensions.spacing.small,
     fontSize: 14,
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
-    fontSize: 16,
-    marginLeft: 6,
-    color: "#333",
+    marginLeft: AppDimensions.spacing.small / 2,
   },
 });
