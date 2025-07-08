@@ -1,15 +1,20 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
+import { Usuario } from "../model/Usuario";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { Usuario } from "../model/Usuario";
-
-import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, "CadastrarUsuario"> & {
   setUsuario: (usuario: Usuario) => void;
@@ -29,14 +34,14 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
   const validarCampos = () => {
     const novosErros: { [key: string]: string } = {};
-    if (!nome.trim()) novosErros.nome = "Informe o nome.";
-    if (!email.trim() || !email.includes("@")) novosErros.email = "Email inválido.";
-    if (!senha.trim() || senha.length < 6) novosErros.senha = "Senha muito curta.";
-    if (!dataNascimento.trim() || isNaN(Date.parse(dataNascimento)))
+    if (!nome) novosErros.nome = "Informe o nome.";
+    if (!email || !email.includes("@")) novosErros.email = "Email inválido.";
+    if (!senha || senha.length < 6) novosErros.senha = "Senha muito curta.";
+    if (!dataNascimento || isNaN(Date.parse(dataNascimento)))
       novosErros.dataNascimento = "Data inválida (use YYYY-MM-DD).";
     if (!genero) novosErros.genero = "Selecione um gênero.";
-    if (!peso.trim() || isNaN(parseFloat(peso))) novosErros.peso = "Peso inválido.";
-    if (!altura.trim() || isNaN(parseFloat(altura)))
+    if (!peso || isNaN(parseFloat(peso))) novosErros.peso = "Peso inválido.";
+    if (!altura || isNaN(parseFloat(altura)))
       novosErros.altura = "Altura inválida.";
 
     setErros(novosErros);
@@ -48,15 +53,14 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
     try {
       const novoUsuario = new Usuario(
-        nome.trim(),
-        email.trim(),
-        senha.trim(),
-        new Date(dataNascimento.split("/").reverse().join("-")), 
-
+        nome,
+        email,
+        senha,
+        new Date(dataNascimento),
         genero as "masculino" | "feminino" | "outro",
         parseFloat(peso),
         parseFloat(altura),
-        restricoes.trim() ? restricoes.split(",").map((r) => r.trim()) : []
+        restricoes ? restricoes.split(",").map((r) => r.trim()) : []
       );
 
       const usuariosSalvos = await AsyncStorage.getItem("usuariosCadastrados");
@@ -73,12 +77,10 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
       }
 
       listaUsuarios.push(novoUsuario);
-
       await AsyncStorage.setItem(
         "usuariosCadastrados",
         JSON.stringify(listaUsuarios)
       );
-
       await AsyncStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
       setUsuario(novoUsuario);
 
@@ -110,120 +112,112 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={HeaderStyles.detailHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
-          <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
-          <Text style={HeaderStyles.backButtonText}>Voltar</Text>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
-        <Text style={HeaderStyles.headerTitle}>Cadastro de Usuário</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
-          <Image
-            source={require('../assets/better-bite-logo.png')}
-            style={HeaderStyles.appLogoHeader}
-            accessibilityLabel="BetterBite Logo"
-          />
-        </TouchableOpacity>
+        <Text style={styles.appName}>BetterBite</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.label}>Nome:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome"
-          value={nome}
-          onChangeText={setNome}
-          placeholderTextColor={AppColors.placeholder}
-        />
-        {erros.nome && <Text style={styles.errorText}>{erros.nome}</Text>}
 
-        <Text style={styles.label}>Email:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          placeholderTextColor={AppColors.placeholder}
-        />
-        {erros.email && <Text style={styles.errorText}>{erros.email}</Text>}
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Cadastro de Usuário</Text>
 
-        <Text style={styles.label}>Senha:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          secureTextEntry
-          value={senha}
-          onChangeText={setSenha}
-          placeholderTextColor={AppColors.placeholder}
-        />
-        {erros.senha && <Text style={styles.errorText}>{erros.senha}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Nome"
+            value={nome}
+            onChangeText={setNome}
+          />
+          {erros.nome && <Text style={styles.errorText}>{erros.nome}</Text>}
 
-        <Text style={styles.label}>Data de Nascimento (YYYY-MM-DD):</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="AAAA-MM-DD"
-          keyboardType="numeric"
-          maxLength={10}
-          value={dataNascimento}
-          onChangeText={(texto) =>
-            setDataNascimento(formatarDataAmericana(texto))
-          }
-          placeholderTextColor={AppColors.placeholder}
-        />
-        {erros.dataNascimento && <Text style={styles.errorText}>{erros.dataNascimento}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          {erros.email && <Text style={styles.errorText}>{erros.email}</Text>}
 
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            secureTextEntry
+            value={senha}
+            onChangeText={setSenha}
+          />
+          {erros.senha && <Text style={styles.errorText}>{erros.senha}</Text>}
 
-        <Text style={styles.label}>Gênero:</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={genero}
-            onValueChange={(itemValue) => setGenero(itemValue)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecione..." value="" />
-            <Picker.Item label="Masculino" value="masculino" />
-            <Picker.Item label="Feminino" value="feminino" />
-            <Picker.Item label="Outro" value="outro" />
-          </Picker>
+          <TextInput
+            style={styles.input}
+            placeholder="Data de Nascimento (yyyy-mm-dd)"
+            keyboardType="numeric"
+            maxLength={10}
+            value={dataNascimento}
+            onChangeText={(texto) =>
+              setDataNascimento(formatarDataAmericana(texto))
+            }
+          />
+          {erros.dataNascimento && (
+            <Text style={styles.errorText}>{erros.dataNascimento}</Text>
+          )}
+
+          <Text style={styles.label}>Gênero</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={genero}
+              onValueChange={setGenero}
+              style={styles.picker}
+            >
+              <Picker.Item label="Selecione..." value="" />
+              <Picker.Item label="Masculino" value="masculino" />
+              <Picker.Item label="Feminino" value="feminino" />
+              <Picker.Item label="Outro" value="outro" />
+            </Picker>
+          </View>
+          {erros.genero && <Text style={styles.errorText}>{erros.genero}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Peso (kg)"
+            keyboardType="numeric"
+            value={peso}
+            onChangeText={setPeso}
+          />
+          {erros.peso && <Text style={styles.errorText}>{erros.peso}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Altura (cm)"
+            keyboardType="numeric"
+            value={altura}
+            onChangeText={setAltura}
+          />
+          {erros.altura && <Text style={styles.errorText}>{erros.altura}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Restrições alimentares (separadas por vírgula)"
+            value={restricoes}
+            onChangeText={setRestricoes}
+          />
+
+          <TouchableOpacity style={styles.button} onPress={handleSalvar}>
+            <Text style={styles.buttonText}>Salvar Usuário</Text>
+          </TouchableOpacity>
         </View>
-        {erros.genero && <Text style={styles.errorText}>{erros.genero}</Text>}
-
-        <Text style={styles.label}>Peso (kg):</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Peso (kg)"
-          keyboardType="numeric"
-          value={peso}
-          onChangeText={setPeso}
-          placeholderTextColor={AppColors.placeholder}
-        />
-        {erros.peso && <Text style={styles.errorText}>{erros.peso}</Text>}
-
-        <Text style={styles.label}>Altura (cm):</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Altura (cm)"
-          keyboardType="numeric"
-          value={altura}
-          onChangeText={setAltura}
-          placeholderTextColor={AppColors.placeholder}
-        />
-        {erros.altura && <Text style={styles.errorText}>{erros.altura}</Text>}
-
-        <Text style={styles.label}>
-          Restrições alimentares (separadas por vírgula):
-        </Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: glúten, lactose, amendoim"
-          value={restricoes}
-          onChangeText={setRestricoes}
-          placeholderTextColor={AppColors.placeholder}
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleSalvar}>
-          <Text style={styles.buttonText}>Salvar Usuário</Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -231,58 +225,110 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: AppColors.background,
+    backgroundColor: "#fff",
   },
-  container: {
-    padding: AppDimensions.spacing.medium,
-    flexGrow: 1,
-    backgroundColor: AppColors.background,
+  header: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButtonText: {
+    fontSize: 16,
+    marginLeft: 6,
+    color: "#333",
+  },
+  appName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#2E7D32",
+    marginRight: 10,
+  },
+  content: {
+    // backgroundColor: "#E8F5E9", --- tom de verde mais claro, escolher o melhor
+    backgroundColor: "#A5D6A7",
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    marginBottom: 30,
+  },
+
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1B5E20",
+    marginBottom: 25,
+    textAlign: "center",
   },
   input: {
-    backgroundColor: AppColors.inputBackground,
-    paddingHorizontal: AppDimensions.spacing.medium,
-    paddingVertical: AppDimensions.spacing.small + 2,
-    borderRadius: AppDimensions.borderRadius.medium,
+    backgroundColor: "#fff",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 12,
     fontSize: 16,
-    marginBottom: AppDimensions.spacing.medium,
-    borderColor: AppColors.border,
+    marginBottom: 10,
+    borderColor: "#d1d5db",
     borderWidth: 1,
   },
   label: {
     fontWeight: "600",
-    marginBottom: AppDimensions.spacing.small / 2,
-    color: AppColors.text,
-    fontSize: 16,
+    marginBottom: 8,
+    color: "#2C3E50",
   },
   pickerWrapper: {
-    backgroundColor: AppColors.inputBackground,
-    borderColor: AppColors.border,
+    backgroundColor: "#fff",
+    borderColor: "#d1d5db",
     borderWidth: 1,
-    borderRadius: AppDimensions.borderRadius.medium,
-    marginBottom: AppDimensions.spacing.medium,
+    borderRadius: 12,
+    marginBottom: 10,
     overflow: "hidden",
   },
   picker: {
     height: 50,
     width: "100%",
-    color: AppColors.textSecondary, 
   },
   button: {
-    backgroundColor: AppColors.primary,
-    paddingVertical: AppDimensions.spacing.medium,
-    borderRadius: AppDimensions.borderRadius.large,
+    backgroundColor: "#2E7D32",
+    paddingVertical: 14,
+    borderRadius: 15,
     alignItems: "center",
-    marginTop: AppDimensions.spacing.medium,
+    marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontWeight: "700",
     fontSize: 18,
   },
-  errorText: { 
-    color: AppColors.error,
-    marginBottom: AppDimensions.spacing.small,
+  errorText: {
+    color: "red",
+    marginBottom: 10,
     fontSize: 14,
-    marginLeft: AppDimensions.spacing.small / 2,
+  },
+  footer: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#999",
   },
 });
