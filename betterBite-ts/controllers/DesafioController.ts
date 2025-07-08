@@ -36,11 +36,9 @@ export class DesafioController {
 
     const registros = this.registrosDoDesafio(idDesafio);
 
-    // Mapeia registros por data para somar o consumo diário
     const consumoDiarioMap = new Map<string, number>();
-
     registros.forEach(reg => {
-      const dataStr = reg.data.toISOString().split('T')[0]; // "yyyy-mm-dd"
+      const dataStr = reg.data.toISOString().split('T')[0];
       const total = consumoDiarioMap.get(dataStr) ?? 0;
       consumoDiarioMap.set(dataStr, total + reg.consumo);
     });
@@ -56,6 +54,12 @@ export class DesafioController {
     
     if (totalDiasComRegistros === 0) return 0;
 
-    return Math.round((diasComMetaAtingida / totalDiasComRegistros) * 100);
+    return Math.min(100, Math.round((diasComMetaAtingida / totalDiasComRegistros) * 100));
+  }
+
+  usuarioJaParticipa(usuarioId: string, desafioId: string): boolean {
+    return this.desafiosUsuarios.some(
+      (du) => du.usuarioId === usuarioId && du.desafioId === desafioId && du.status === 'ativo'
+    );
   }
 }

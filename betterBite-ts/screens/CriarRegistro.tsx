@@ -7,6 +7,8 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../App';
 
+import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
+
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, keyof RootStackParamList>;
   route: RouteProp<RootStackParamList, 'CheckinDesafio' | 'CriarRegistroDesafio'>;
@@ -30,7 +32,7 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
     }
 
     if (!validarData(data.trim())) {
-      Alert.alert('Erro', 'Data inválida. Use o formato YYYY-MM-DD.');
+      Alert.alert('Erro', 'Data inválida. Use o formato大全-MM-DD.');
       return;
     }
 
@@ -61,19 +63,16 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.detailHeader}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={28} color="#333" />
-          <Text style={styles.backButtonText}>Voltar</Text>
+      <View style={HeaderStyles.detailHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={HeaderStyles.backButtonContainer}>
+          <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
+          <Text style={HeaderStyles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Criar Registro</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.appLogoContainer}>
+        <Text style={HeaderStyles.headerTitle}>Criar Registro</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={HeaderStyles.appLogoHeaderContainer}>
           <Image
             source={require('../assets/better-bite-logo.png')}
-            style={styles.appLogoMassive}
+            style={HeaderStyles.appLogoHeader}
             accessibilityLabel="BetterBite Logo"
           />
         </TouchableOpacity>
@@ -105,7 +104,7 @@ export default function CriarRegistro({ navigation, route, registrosDesafio, set
           value={observacao}
           onChange={setObservacao}
           multiline
-          numberOfLines={4} 
+          numberOfLines={4}
           placeholder="Digite uma observação"
           style={{ height: 100, textAlignVertical: 'top' }}
         />
@@ -126,7 +125,7 @@ function Input({
   multiline = false,
   style = {},
   placeholder = '',
-  numberOfLines, 
+  numberOfLines,
 }: {
   label: string;
   value: string;
@@ -135,10 +134,10 @@ function Input({
   multiline?: boolean;
   style?: any;
   placeholder?: string;
-  numberOfLines?: number; 
+  numberOfLines?: number;
 }) {
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: AppDimensions.spacing.medium }}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
@@ -146,9 +145,9 @@ function Input({
         keyboardType={keyboardType}
         style={[styles.input, style]}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={AppColors.placeholder}
         multiline={multiline}
-        numberOfLines={numberOfLines} 
+        numberOfLines={numberOfLines}
       />
     </View>
   );
@@ -157,62 +156,23 @@ function Input({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
-  },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  backButtonText: {
-    fontSize: 17,
-    color: '#333',
-    marginLeft: 5,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    flex: 1,
-    marginRight: 20,
-  },
-  appLogoContainer: {
-    position: 'absolute',
-    right: 10,
-    top: 10,
-    zIndex: 1,
-  },
-  appLogoMassive: {
-    width: 350, 
-    height: 120, 
-    resizeMode: 'contain',
+    backgroundColor: AppColors.background,
   },
   scrollableContentWrapper: {
     flex: 1,
   },
   listContentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingTop: AppDimensions.spacing.small,
+    paddingBottom: AppDimensions.spacing.medium,
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    backgroundColor: AppColors.inputBackground,
+    borderRadius: AppDimensions.borderRadius.medium,
+    paddingHorizontal: AppDimensions.spacing.medium,
+    paddingVertical: AppDimensions.spacing.small + 2,
     fontSize: 16,
-    borderColor: '#E0E0E0',
+    borderColor: AppColors.border,
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -220,18 +180,19 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
     width: '100%',
+    marginBottom: AppDimensions.spacing.small, 
   },
   label: {
     fontSize: 15,
-    color: '#555',
-    marginBottom: 6,
+    color: AppColors.textSecondary,
+    marginBottom: AppDimensions.spacing.small / 2,
     fontWeight: '600',
   },
   botao: {
-    backgroundColor: '#8BC34A',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 28,
+    backgroundColor: AppColors.primary,
+    paddingVertical: AppDimensions.spacing.medium + 4,
+    borderRadius: AppDimensions.borderRadius.medium,
+    marginTop: AppDimensions.spacing.xLarge,
     alignItems: 'center',
   },
   botaoTexto: {
