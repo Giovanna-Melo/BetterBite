@@ -14,6 +14,7 @@ import CriarRegistro from "./screens/CriarRegistro";
 import CadastrarUsuario from "./screens/CadastrarUsuario";
 import Login from "./screens/LoginUsuario";
 import EditarUsuario from "./screens/EditarUsuario";
+import Welcome from "./screens/Welcome";
 
 // MODELOS E MOCKS
 import { Usuario } from "./model/Usuario";
@@ -26,6 +27,7 @@ import { desafiosUsuariosMock } from "./mocks/desafioUsuarioMock";
 import { registrosDesafioMock } from "./mocks/registroDesafioMock";
 
 export type RootStackParamList = {
+  Welcome: undefined;
   Home: undefined;
   ListaDesafios: undefined;
   CheckinDesafio: { idDesafio: string };
@@ -45,8 +47,10 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
 
   const [desafios, setDesafios] = useState<Desafio[]>(desafiosMock);
-  const [registrosDesafio, setRegistrosDesafio] = useState<RegistroDesafio[]>(registrosDesafioMock);
-  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] = useState<DesafioUsuario[]>(desafiosUsuariosMock);
+  const [registrosDesafio, setRegistrosDesafio] =
+    useState<RegistroDesafio[]>(registrosDesafioMock);
+  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] =
+    useState<DesafioUsuario[]>(desafiosUsuariosMock);
 
   const adicionarRegistroDesafio = (registro: RegistroDesafio) => {
     setRegistrosDesafio((prev) => [...prev, registro]);
@@ -97,9 +101,10 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={usuario ? "Home" : "Login"}
+        initialRouteName={usuario ? "Home" : "Welcome"}
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="Welcome" component={Welcome} />
         {!usuario ? (
           <>
             <Stack.Screen name="Login">
@@ -194,13 +199,13 @@ export default function App() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F0F4F8',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F0F4F8",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 18,
-    color: '#333',
+    color: "#333",
   },
 });

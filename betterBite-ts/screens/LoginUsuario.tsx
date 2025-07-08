@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
+  Image,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -23,6 +24,8 @@ export default function Login({ navigation, setUsuario }: Props) {
   const [erroEmail, setErroEmail] = useState("");
   const [erroSenha, setErroSenha] = useState("");
   const [erroLogin, setErroLogin] = useState("");
+
+  const senhaRef = useRef<TextInput>(null); // 👈 referência para o campo de senha
 
   const validarCampos = () => {
     let valido = true;
@@ -45,22 +48,20 @@ export default function Login({ navigation, setUsuario }: Props) {
 
     return valido;
   };
+
   const handleLogin = async () => {
     if (!validarCampos()) return;
 
     try {
-      // Pega os usuários do AsyncStorage
       const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
       const usuariosAsync: Usuario[] = usuariosData
         ? JSON.parse(usuariosData)
         : [];
 
-      // Procura no AsyncStorage
       let usuario = usuariosAsync.find(
         (u) => u.email === email && u.senhaHash === senha
       );
 
-      // Se não encontrou no AsyncStorage, procura no mock
       if (!usuario) {
         usuario = usuariosMock.find(
           (u) => u.email === email && u.senhaHash === senha
@@ -84,52 +85,71 @@ export default function Login({ navigation, setUsuario }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <Image
+          source={require("../assets/better-bite-logo2.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.appName}>BetterBite</Text>
       </View>
 
-      <Text style={styles.title}>Login</Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>Login</Text>
 
-      <TextInput
-        style={[styles.input, erroEmail ? styles.inputErro : null]}
-        placeholder="Email"
-        value={email}
-        onChangeText={(text) => {
-          setEmail(text);
-          setErroEmail("");
-          setErroLogin("");
-        }}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        placeholderTextColor="#999"
-      />
-      {erroEmail ? <Text style={styles.erroTexto}>{erroEmail}</Text> : null}
+        <TextInput
+          style={[styles.input, erroEmail ? styles.inputErro : null]}
+          placeholder="Email"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(text);
+            setErroEmail("");
+            setErroLogin("");
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholderTextColor="#666"
+          returnKeyType="next"
+          onSubmitEditing={() => senhaRef.current?.focus()}
+          blurOnSubmit={false}
+        />
+        {erroEmail ? <Text style={styles.erroTexto}>{erroEmail}</Text> : null}
 
-      <TextInput
-        style={[styles.input, erroSenha ? styles.inputErro : null]}
-        placeholder="Senha"
-        secureTextEntry
-        value={senha}
-        onChangeText={(text) => {
-          setSenha(text);
-          setErroSenha("");
-          setErroLogin("");
-        }}
-        placeholderTextColor="#999"
-      />
-      {erroSenha ? <Text style={styles.erroTexto}>{erroSenha}</Text> : null}
+        <TextInput
+          ref={senhaRef}
+          style={[styles.input, erroSenha ? styles.inputErro : null]}
+          placeholder="Senha"
+          secureTextEntry
+          value={senha}
+          onChangeText={(text) => {
+            setSenha(text);
+            setErroSenha("");
+            setErroLogin("");
+          }}
+          placeholderTextColor="#666"
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+        />
+        {erroSenha ? <Text style={styles.erroTexto}>{erroSenha}</Text> : null}
 
-      {erroLogin ? <Text style={styles.erroLogin}>{erroLogin}</Text> : null}
+        {erroLogin ? <Text style={styles.erroLogin}>{erroLogin}</Text> : null}
 
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Entrar</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Entrar</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.registerButton}
-        onPress={() => navigation.navigate("CadastrarUsuario")}
-      >
-        <Text style={styles.buttonText}>Cadastrar novo usuário</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => navigation.navigate("CadastrarUsuario")}
+        >
+          <Text style={styles.buttonText}>Cadastrar novo usuário</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+        </Text>
+      </View>
     </View>
   );
 }
@@ -137,27 +157,41 @@ export default function Login({ navigation, setUsuario }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0F4F8",
-    paddingHorizontal: 30,
-    justifyContent: "center",
+    backgroundColor: "#F6FFF6",
   },
   header: {
+    backgroundColor: "#fff",
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: 30,
     borderBottomWidth: 1,
-    borderColor: "#eee",
-    marginBottom: 30,
+    borderColor: "#ddd",
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 10,
   },
   appName: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "bold",
-    color: "#4CAF50",
+    color: "#2E7D32",
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#A5D6A7",
+    paddingHorizontal: 30,
+    paddingVertical: 30,
+    justifyContent: "center",
+    marginHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 10,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#2C3E50",
-    marginBottom: 40,
+    color: "#1B5E20",
+    marginBottom: 20,
     textAlign: "center",
   },
   input: {
@@ -190,7 +224,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#2E7D32",
     paddingVertical: 14,
     borderRadius: 15,
     alignItems: "center",
@@ -201,7 +235,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   registerButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: "#1E88E5",
     paddingVertical: 14,
     borderRadius: 15,
     alignItems: "center",
@@ -215,5 +249,17 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 18,
+  },
+  footer: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#999",
+    fontFamily: "Poppins_300Light",
   },
 });

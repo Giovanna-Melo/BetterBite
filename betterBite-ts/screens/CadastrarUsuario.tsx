@@ -56,8 +56,7 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
         nome,
         email,
         senha,
-        new Date(dataNascimento.split("/").reverse().join("-")),
-
+        new Date(dataNascimento),
         genero as "masculino" | "feminino" | "outro",
         parseFloat(peso),
         parseFloat(altura),
@@ -78,12 +77,10 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
       }
 
       listaUsuarios.push(novoUsuario);
-
       await AsyncStorage.setItem(
         "usuariosCadastrados",
         JSON.stringify(listaUsuarios)
       );
-
       await AsyncStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
       setUsuario(novoUsuario);
 
@@ -96,7 +93,7 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
   };
 
   const formatarDataAmericana = (texto: string) => {
-    const numeros = texto.replace(/\D/g, "").slice(0, 8); // Apenas números, máx. 8 dígitos
+    const numeros = texto.replace(/\D/g, "").slice(0, 8);
     let formatado = "";
 
     if (numeros.length <= 4) {
@@ -113,13 +110,9 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
     return formatado;
   };
 
-  function formatarDataParaISO(data: string): string {
-    const [dia, mes, ano] = data.split("/");
-    return `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
-  }
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -127,90 +120,104 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
           <Ionicons name="arrow-back" size={24} color="#333" />
           <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
+        <Text style={styles.appName}>BetterBite</Text>
+      </View>
 
-        <Text style={styles.title}>Cadastro de Usuário</Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Cadastro de Usuário</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nome"
-          value={nome}
-          onChangeText={setNome}
-        />
-        {erros.nome && <Text style={styles.errorText}>{erros.nome}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Nome"
+            value={nome}
+            onChangeText={setNome}
+          />
+          {erros.nome && <Text style={styles.errorText}>{erros.nome}</Text>}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        {erros.email && <Text style={styles.errorText}>{erros.email}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          {erros.email && <Text style={styles.errorText}>{erros.email}</Text>}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          secureTextEntry
-          value={senha}
-          onChangeText={setSenha}
-        />
-        {erros.senha && <Text style={styles.errorText}>{erros.senha}</Text>}
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            secureTextEntry
+            value={senha}
+            onChangeText={setSenha}
+          />
+          {erros.senha && <Text style={styles.errorText}>{erros.senha}</Text>}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Data de Nascimento (yyyy-mm-dd)"
-          keyboardType="numeric"
-          maxLength={10}
-          value={dataNascimento}
-          onChangeText={(texto) =>
-            setDataNascimento(formatarDataAmericana(texto))
-          }
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Data de Nascimento (yyyy-mm-dd)"
+            keyboardType="numeric"
+            maxLength={10}
+            value={dataNascimento}
+            onChangeText={(texto) =>
+              setDataNascimento(formatarDataAmericana(texto))
+            }
+          />
+          {erros.dataNascimento && (
+            <Text style={styles.errorText}>{erros.dataNascimento}</Text>
+          )}
 
-        <Text style={styles.label}>Gênero</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={genero}
-            onValueChange={(itemValue) => setGenero(itemValue)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecione..." value="" />
-            <Picker.Item label="Masculino" value="masculino" />
-            <Picker.Item label="Feminino" value="feminino" />
-            <Picker.Item label="Outro" value="outro" />
-          </Picker>
+          <Text style={styles.label}>Gênero</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={genero}
+              onValueChange={setGenero}
+              style={styles.picker}
+            >
+              <Picker.Item label="Selecione..." value="" />
+              <Picker.Item label="Masculino" value="masculino" />
+              <Picker.Item label="Feminino" value="feminino" />
+              <Picker.Item label="Outro" value="outro" />
+            </Picker>
+          </View>
+          {erros.genero && <Text style={styles.errorText}>{erros.genero}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Peso (kg)"
+            keyboardType="numeric"
+            value={peso}
+            onChangeText={setPeso}
+          />
+          {erros.peso && <Text style={styles.errorText}>{erros.peso}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Altura (cm)"
+            keyboardType="numeric"
+            value={altura}
+            onChangeText={setAltura}
+          />
+          {erros.altura && <Text style={styles.errorText}>{erros.altura}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Restrições alimentares (separadas por vírgula)"
+            value={restricoes}
+            onChangeText={setRestricoes}
+          />
+
+          <TouchableOpacity style={styles.button} onPress={handleSalvar}>
+            <Text style={styles.buttonText}>Salvar Usuário</Text>
+          </TouchableOpacity>
         </View>
-        {erros.genero && <Text style={styles.errorText}>{erros.genero}</Text>}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Peso (kg)"
-          keyboardType="numeric"
-          value={peso}
-          onChangeText={setPeso}
-        />
-        {erros.peso && <Text style={styles.errorText}>{erros.peso}</Text>}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Altura (cm)"
-          keyboardType="numeric"
-          value={altura}
-          onChangeText={setAltura}
-        />
-        {erros.altura && <Text style={styles.errorText}>{erros.altura}</Text>}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Restrições alimentares (separadas por vírgula)"
-          value={restricoes}
-          onChangeText={setRestricoes}
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleSalvar}>
-          <Text style={styles.buttonText}>Salvar Usuário</Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -220,15 +227,52 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  container: {
-    backgroundColor: "#F0F4F8",
-    padding: 20,
-    flexGrow: 1,
+  header: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButtonText: {
+    fontSize: 16,
+    marginLeft: 6,
+    color: "#333",
+  },
+  appName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#2E7D32",
+    marginRight: 10,
+  },
+  content: {
+    // backgroundColor: "#E8F5E9", --- tom de verde mais claro, escolher o melhor
+    backgroundColor: "#A5D6A7",
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    marginBottom: 30,
+  },
+
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#2C3E50",
+    color: "#1B5E20",
     marginBottom: 25,
     textAlign: "center",
   },
@@ -260,7 +304,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   button: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#2E7D32",
     paddingVertical: 14,
     borderRadius: 15,
     alignItems: "center",
@@ -276,15 +320,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 14,
   },
-  backButton: {
-    flexDirection: "row",
+  footer: {
+    backgroundColor: "#fff",
     alignItems: "center",
-    marginBottom: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderColor: "#ddd",
   },
-  backButtonText: {
-    fontSize: 16,
-    marginLeft: 6,
-    color: "#333",
+  footerText: {
+    fontSize: 14,
+    color: "#999",
   },
 });
