@@ -12,7 +12,7 @@ export default function ReceitaCard({ receita }: Props) {
 
   return (
     <ScrollView style={styles.cardContainer} showsVerticalScrollIndicator={true}>
-      <View style={styles.imageWrapper}> {/* ALTERADO: width, height e alignSelf */}
+      <View style={styles.imageWrapper}>
         {imageLoading && !imageError && (
           <ActivityIndicator style={styles.activityIndicator} size="large" color="#8BC34A" />
         )}
@@ -94,22 +94,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  imageWrapper: { // ALTERADO: Para formato retrato
-    width: '80%', // Ocupa 80% da largura do pai
-    height: 350, // Aumenta ainda mais a altura para um formato de retrato
+  imageWrapper: {
+    width: '80%',
+    height: 350,
     backgroundColor: '#EEE',
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center', // Centraliza o wrapper dentro do cardContainer
-    borderRadius: 10, // Adicionei um leve border radius para a imagem
-    overflow: 'hidden', // Importante para cortar a imagem dentro do borderRadius
-    marginTop: 15, // Pequena margem superior
-    marginBottom: 15, // Pequena margem inferior
+    alignSelf: 'center',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginTop: 15,
+    marginBottom: 15,
   },
   image: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover', // 'cover' preenche o espaço, cortando se necessário. Use 'contain' se quiser ver a imagem inteira sem cortes, mas com barras laterais.
+    resizeMode: 'cover',
   },
   activityIndicator: {
     position: 'absolute',

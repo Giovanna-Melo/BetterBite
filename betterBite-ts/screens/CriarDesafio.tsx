@@ -39,6 +39,10 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
   const [duracao, setDuracao] = useState('');
   const [ativo, setAtivo] = useState(true);
 
+  if (!usuario) {
+    return null;
+  }
+
   const criarDesafio = () => {
     if (!nome.trim() || !descricao.trim() || !categoria.trim() || !tipoMeta.trim() || !unidade.trim() || !valorMeta.trim() || !frequencia.trim() || !duracao.trim()) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');

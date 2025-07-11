@@ -9,8 +9,9 @@ import { RootStackParamList } from '../App';
 import { AppColors, AppDimensions } from '../constants/AppStyles';
 
 type HomeSidebarProps = {
-  usuario: Usuario;
+  usuario: Usuario | null; // A prop usuario pode ser nula
   setUsuario: (usuario: Usuario | null) => void;
+  // CORREÇÃO: Tipagem ajustada para aceitar navegação de qualquer tela
   navigation: NativeStackNavigationProp<RootStackParamList, keyof RootStackParamList>;
   activeMenu: 'desafios' | 'receitas' | null;
   setActiveMenu: (menu: 'desafios' | 'receitas' | null) => void;
@@ -18,6 +19,9 @@ type HomeSidebarProps = {
 };
 
 export default function HomeSidebar({ usuario, setUsuario, navigation, activeMenu, setActiveMenu, onLogout }: HomeSidebarProps) {
+  // Verificação de usuário nulo ou uso de optional chaining para segurança
+  const userName = usuario?.nome.split(' ')[0] || '...';
+  
   return (
     <View style={styles.sidebar}>
       <TouchableOpacity style={styles.sidebarIcon} onPress={() => navigation.navigate('EditarUsuario')}>
@@ -25,7 +29,7 @@ export default function HomeSidebar({ usuario, setUsuario, navigation, activeMen
           source={require('../assets/login-avatar.png')}
           style={styles.avatarImage}
         />
-        <Text style={styles.userNameText}>{usuario.nome.split(' ')[0]}</Text>
+        <Text style={styles.userNameText}>{userName}</Text>
       </TouchableOpacity>
 
       <View style={styles.sidebarNav}>

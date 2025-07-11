@@ -47,13 +47,15 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
 
   const [desafios, setDesafios] = useState<Desafio[]>(desafiosMock);
-  const [registrosDesafio, setRegistrosDesafio] =
-    useState<RegistroDesafio[]>(registrosDesafioMock);
-  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] =
-    useState<DesafioUsuario[]>(desafiosUsuariosMock);
+  const [registrosDesafio, setRegistrosDesafio] = useState<RegistroDesafio[]>(registrosDesafioMock);
+  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] = useState<DesafioUsuario[]>(desafiosUsuariosMock);
 
   const adicionarRegistroDesafio = (registro: RegistroDesafio) => {
     setRegistrosDesafio((prev) => [...prev, registro]);
+  };
+
+  const adicionarDesafioDoUsuario = (desafioUsuario: DesafioUsuario) => {
+    setDesafiosDoUsuarioState((prev) => [...prev, desafioUsuario]);
   };
 
   useEffect(() => {
@@ -104,19 +106,18 @@ export default function App() {
         initialRouteName={usuario ? "Home" : "Welcome"}
         screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="Welcome" component={Welcome} />
-        {!usuario ? (
-          <>
-            <Stack.Screen name="Login">
-              {(props) => <Login {...props} setUsuario={setUsuario} />}
-            </Stack.Screen>
-            <Stack.Screen name="CadastrarUsuario">
-              {(props) => (
-                <CadastrarUsuario {...props} setUsuario={setUsuario} />
-              )}
-            </Stack.Screen>
-          </>
-        ) : (
+        <Stack.Screen name="Welcome">
+          {(props) => <Welcome {...props} usuario={usuario} />}
+        </Stack.Screen>
+        <Stack.Screen name="Login">
+          {(props) => <Login {...props} setUsuario={setUsuario} />}
+        </Stack.Screen>
+        <Stack.Screen name="CadastrarUsuario">
+          {(props) => (
+            <CadastrarUsuario {...props} setUsuario={setUsuario} />
+          )}
+        </Stack.Screen>
+        {usuario ? (
           <>
             <Stack.Screen name="Home">
               {(props) => (
@@ -131,7 +132,6 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-
             <Stack.Screen name="ListaDesafios">
               {(props) => (
                 <ListaDesafios
@@ -143,7 +143,6 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-
             <Stack.Screen name="CriarDesafio">
               {(props) => (
                 <CriarDesafio
@@ -155,7 +154,6 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-
             <Stack.Screen name="CheckinDesafio">
               {(props) => (
                 <CriarRegistro
@@ -174,7 +172,6 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-
             <Stack.Screen name="DetalhesDesafio">
               {(props) => (
                 <DetalhesDesafio
@@ -187,9 +184,7 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-
             <Stack.Screen name="Receitas" component={ReceitasScreen} />
-
             <Stack.Screen name="EditarUsuario">
               {(props) => (
                 <EditarUsuario
@@ -200,7 +195,7 @@ export default function App() {
               )}
             </Stack.Screen>
           </>
-        )}
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

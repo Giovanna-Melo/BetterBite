@@ -85,7 +85,7 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
       setUsuario(novoUsuario);
 
       Alert.alert("Sucesso", "Usuário cadastrado!");
-      navigation.replace("Home");
+      navigation.replace("Welcome");
     } catch (e) {
       console.error("Erro ao salvar usuário:", e);
       Alert.alert("Erro", "Verifique os dados inseridos.");
@@ -215,7 +215,7 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+          Beatriz Costa • Giovanna Melo • Eloisa Santos • 2025
         </Text>
       </View>
     </SafeAreaView>
