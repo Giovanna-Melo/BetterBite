@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -21,6 +21,8 @@ import { Usuario } from '../model/Usuario';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
+import { criarTabelaDesafios, inserirDesafio } from '../services/desafioService';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'> & {
   desafios: Desafio[];
   setDesafios: React.Dispatch<React.SetStateAction<Desafio[]>>;
@@ -39,7 +41,11 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
   const [duracao, setDuracao] = useState('');
   const [ativo, setAtivo] = useState(true);
 
-  const criarDesafio = () => {
+  useEffect(() => {
+    criarTabelaDesafios();
+  }, []);
+
+  const criarDesafio = async () => {
     if (!nome.trim() || !descricao.trim() || !categoria.trim() || !tipoMeta.trim() || !unidade.trim() || !valorMeta.trim() || !frequencia.trim() || !duracao.trim()) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
@@ -78,8 +84,14 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
     );
     setDesafiosDoUsuarioState((prev) => [...prev, novoDesafioUsuario]);
 
-    Alert.alert('Sucesso', 'Desafio criado e você já está participando!');
-    navigation.goBack();
+    try {
+      await inserirDesafio(novoDesafio);
+      Alert.alert('Sucesso', 'Desafio criado e você já está participando!');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Erro ao salvar desafio:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o desafio.');
+    }
   };
 
   return (

@@ -1,10 +1,11 @@
+// App.tsx
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// IMPORTS DE TELAS
+// TELAS
 import ListaDesafios from "./screens/ListaDesafios";
 import CriarDesafio from "./screens/CriarDesafio";
 import DetalhesDesafio from "./screens/DetalhesDesafio";
@@ -16,15 +17,34 @@ import Login from "./screens/LoginUsuario";
 import EditarUsuario from "./screens/EditarUsuario";
 import Welcome from "./screens/Welcome";
 
-// MODELOS E MOCKS
+// MODELOS
 import { Usuario } from "./model/Usuario";
 import { Desafio } from "./model/Desafio";
 import { RegistroDesafio } from "./model/RegistroDesafio";
 import { DesafioUsuario } from "./model/DesafioUsuario";
 
-import { desafiosMock } from "./mocks/desafioMock";
-import { desafiosUsuariosMock } from "./mocks/desafioUsuarioMock";
-import { registrosDesafioMock } from "./mocks/registroDesafioMock";
+// SERVIÇOS LOCAIS
+import database from "./services/database"; // banco híbrido inicializador
+
+import {
+  buscarDesafios as buscarMobile,
+  createDesafioTable as createTableMobile,
+} from "./services/sqliteDesafio";
+
+import {
+  buscarDesafios as buscarWeb,
+  createDesafioTable as createTableWeb,
+} from "./services/sqljsDesafio";
+
+import {
+  createDesafioUsuarioTable as createDesafioUsuarioTableMobile,
+  buscarDesafiosDoUsuario as buscarDesafiosDoUsuarioMobile,
+} from "./services/sqliteDesafioUsuario";
+
+import {
+  createDesafioUsuarioTable as createDesafioUsuarioTableWeb,
+  buscarDesafiosDoUsuario as buscarDesafiosDoUsuarioWeb,
+} from "./services/sqljsDesafioUsuario";
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -46,30 +66,48 @@ export default function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
 
-  const [desafios, setDesafios] = useState<Desafio[]>(desafiosMock);
-  const [registrosDesafio, setRegistrosDesafio] =
-    useState<RegistroDesafio[]>(registrosDesafioMock);
-  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] =
-    useState<DesafioUsuario[]>(desafiosUsuariosMock);
+  const [desafios, setDesafios] = useState<Desafio[]>([]);
+  const [registrosDesafio, setRegistrosDesafio] = useState<RegistroDesafio[]>([]);
+  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] = useState<DesafioUsuario[]>([]);
 
-  const adicionarRegistroDesafio = (registro: RegistroDesafio) => {
-    setRegistrosDesafio((prev) => [...prev, registro]);
-  };
+  const isWeb = Platform.OS === "web";
 
   useEffect(() => {
-    const carregarUsuario = async () => {
+    const carregarDados = async () => {
       try {
+        await database.initDatabase();
+
         const userData = await AsyncStorage.getItem("usuarioLogado");
         if (userData) {
-          setUsuario(JSON.parse(userData));
+          const userObj = JSON.parse(userData);
+          setUsuario(userObj);
+
+          if (isWeb) {
+            await createTableWeb();
+            const desafiosWeb = await buscarWeb();
+            setDesafios(desafiosWeb);
+
+            await createDesafioUsuarioTableWeb();
+            const desafiosUsuarioWeb = await buscarDesafiosDoUsuarioWeb(userObj.id);
+            setDesafiosDoUsuarioState(desafiosUsuarioWeb);
+          } else {
+            await createTableMobile();
+            buscarMobile((dados) => setDesafios(dados));
+
+            await createDesafioUsuarioTableMobile();
+            buscarDesafiosDoUsuarioMobile(userObj.id, (dados) => {
+              setDesafiosDoUsuarioState(dados);
+            });
+          }
         }
       } catch (error) {
-        console.error("Erro ao carregar usuário:", error);
+        console.error("Erro ao carregar dados iniciais:", error);
       } finally {
         setCarregando(false);
       }
     };
-    carregarUsuario();
+
+    carregarDados();
   }, []);
 
   useEffect(() => {
@@ -84,6 +122,7 @@ export default function App() {
         console.error("Erro ao salvar usuário:", error);
       }
     };
+
     if (!carregando) {
       salvarUsuario();
     }
@@ -100,10 +139,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={usuario ? "Home" : "Welcome"}
-        screenOptions={{ headerShown: false }}
-      >
+      <Stack.Navigator initialRouteName={usuario ? "Home" : "Welcome"} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Welcome" component={Welcome} />
         {!usuario ? (
           <>
@@ -111,9 +147,7 @@ export default function App() {
               {(props) => <Login {...props} setUsuario={setUsuario} />}
             </Stack.Screen>
             <Stack.Screen name="CadastrarUsuario">
-              {(props) => (
-                <CadastrarUsuario {...props} setUsuario={setUsuario} />
-              )}
+              {(props) => <CadastrarUsuario {...props} setUsuario={setUsuario} />}
             </Stack.Screen>
           </>
         ) : (
@@ -124,9 +158,7 @@ export default function App() {
                   {...props}
                   usuario={usuario}
                   setUsuario={setUsuario}
-                  desafiosDoUsuario={desafiosDoUsuarioState.filter(
-                    (du) => du.usuarioId === usuario.id
-                  )}
+                  desafiosDoUsuario={desafiosDoUsuarioState}
                   desafiosGerais={desafios}
                 />
               )}
@@ -165,6 +197,7 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
+
             <Stack.Screen name="CriarRegistroDesafio">
               {(props) => (
                 <CriarRegistro
@@ -191,13 +224,7 @@ export default function App() {
             <Stack.Screen name="Receitas" component={ReceitasScreen} />
 
             <Stack.Screen name="EditarUsuario">
-              {(props) => (
-                <EditarUsuario
-                  {...props}
-                  usuario={usuario}
-                  setUsuario={setUsuario}
-                />
-              )}
+              {(props) => <EditarUsuario {...props} usuario={usuario} setUsuario={setUsuario} />}
             </Stack.Screen>
           </>
         )}

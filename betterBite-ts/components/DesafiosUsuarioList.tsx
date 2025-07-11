@@ -13,6 +13,8 @@ type UserChallengesListProps = {
 };
 
 export default function UserChallengesList({ desafiosDoUsuario, desafiosGerais, navigation }: UserChallengesListProps) {
+  console.log('📦 desafiosDoUsuario:', desafiosDoUsuario);
+  console.log('📦 desafiosGerais:', desafiosGerais);
   const getNomeDesafio = (desafioId: string): string => {
     const desafio = desafiosGerais.find(d => d.id === desafioId);
     return desafio ? desafio.nome : 'Desafio Desconhecido';
