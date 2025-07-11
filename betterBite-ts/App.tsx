@@ -1,10 +1,10 @@
+// App.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// IMPORTS DE TELAS
 import ListaDesafios from "./screens/ListaDesafios";
 import CriarDesafio from "./screens/CriarDesafio";
 import DetalhesDesafio from "./screens/DetalhesDesafio";
@@ -16,15 +16,15 @@ import Login from "./screens/LoginUsuario";
 import EditarUsuario from "./screens/EditarUsuario";
 import Welcome from "./screens/Welcome";
 
-// MODELOS E MOCKS
 import { Usuario } from "./model/Usuario";
 import { Desafio } from "./model/Desafio";
 import { RegistroDesafio } from "./model/RegistroDesafio";
 import { DesafioUsuario } from "./model/DesafioUsuario";
 
-import { desafiosMock } from "./mocks/desafioMock";
 import { desafiosUsuariosMock } from "./mocks/desafioUsuarioMock";
 import { registrosDesafioMock } from "./mocks/registroDesafioMock";
+
+import { initDatabase, listarDesafios } from "./services/database";
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -45,16 +45,9 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
-
-  const [desafios, setDesafios] = useState<Desafio[]>(desafiosMock);
-  const [registrosDesafio, setRegistrosDesafio] =
-    useState<RegistroDesafio[]>(registrosDesafioMock);
-  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] =
-    useState<DesafioUsuario[]>(desafiosUsuariosMock);
-
-  const adicionarRegistroDesafio = (registro: RegistroDesafio) => {
-    setRegistrosDesafio((prev) => [...prev, registro]);
-  };
+  const [desafios, setDesafios] = useState<Desafio[]>([]);
+  const [registrosDesafio, setRegistrosDesafio] = useState<RegistroDesafio[]>(registrosDesafioMock);
+  const [desafiosDoUsuarioState, setDesafiosDoUsuarioState] = useState<DesafioUsuario[]>(desafiosUsuariosMock);
 
   useEffect(() => {
     const carregarUsuario = async () => {
@@ -88,6 +81,12 @@ export default function App() {
       salvarUsuario();
     }
   }, [usuario, carregando]);
+
+  useEffect(() => {
+    initDatabase().then(() => {
+      listarDesafios(setDesafios);
+    });
+  }, []);
 
   if (carregando) {
     return (

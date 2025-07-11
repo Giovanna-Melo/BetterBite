@@ -21,6 +21,8 @@ import { Usuario } from '../model/Usuario';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
+import { salvarDesafio, initDatabase } from '../services/database';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'> & {
   desafios: Desafio[];
   setDesafios: React.Dispatch<React.SetStateAction<Desafio[]>>;
@@ -28,7 +30,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'> & {
   setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
 };
 
-export default function CriarDesafio({ navigation, desafios, setDesafios, usuario, setDesafiosDoUsuarioState }: Props) {
+export default function CriarDesafio({
+  navigation,
+  desafios,
+  setDesafios,
+  usuario,
+  setDesafiosDoUsuarioState,
+}: Props) {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -39,8 +47,17 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
   const [duracao, setDuracao] = useState('');
   const [ativo, setAtivo] = useState(true);
 
-  const criarDesafio = () => {
-    if (!nome.trim() || !descricao.trim() || !categoria.trim() || !tipoMeta.trim() || !unidade.trim() || !valorMeta.trim() || !frequencia.trim() || !duracao.trim()) {
+  const criarDesafio = async () => {
+    if (
+      !nome.trim() ||
+      !descricao.trim() ||
+      !categoria.trim() ||
+      !tipoMeta.trim() ||
+      !unidade.trim() ||
+      !valorMeta.trim() ||
+      !frequencia.trim() ||
+      !duracao.trim()
+    ) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
     }
@@ -66,6 +83,17 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
       ativo
     );
 
+    // 1. Inicializa banco antes de salvar
+    try {
+      await initDatabase();
+      await salvarDesafio(novoDesafio);
+    } catch (e) {
+      console.error('Erro ao salvar no banco:', e);
+      Alert.alert('Erro', 'Erro ao salvar o desafio no banco de dados.');
+      return;
+    }
+
+    // 2. Atualiza estados
     setDesafios((prev) => [...prev, novoDesafio]);
 
     const novoDesafioUsuario = new DesafioUsuario(
@@ -85,10 +113,7 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={HeaderStyles.detailHeader}>
-        <TouchableOpacity
-          style={HeaderStyles.backButtonContainer}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={HeaderStyles.backButtonContainer} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={AppDimensions.iconSize.large} color={AppColors.textSecondary} />
           <Text style={HeaderStyles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
@@ -111,7 +136,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
           placeholder="Ex: Desafio da Água"
           placeholderTextColor={AppColors.placeholder}
         />
-
         <Text style={styles.label}>Descrição:</Text>
         <TextInput
           style={styles.input}
@@ -122,7 +146,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
           numberOfLines={3}
           placeholderTextColor={AppColors.placeholder}
         />
-
         <Text style={styles.label}>Categoria:</Text>
         <View style={styles.pickerWrapper}>
           <Picker
@@ -138,7 +161,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
             <Picker.Item label="Restrição" value="restrição" />
           </Picker>
         </View>
-
         <Text style={styles.label}>Tipo de Meta:</Text>
         <View style={styles.pickerWrapper}>
           <Picker
@@ -152,7 +174,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
             <Picker.Item label="Tempo" value="tempo" />
           </Picker>
         </View>
-
         <Text style={styles.label}>Unidade da Meta:</Text>
         <TextInput
           style={styles.input}
@@ -161,7 +182,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
           placeholder="Ex: copos, minutos, porções, vezes"
           placeholderTextColor={AppColors.placeholder}
         />
-
         <Text style={styles.label}>Valor da Meta:</Text>
         <TextInput
           style={styles.input}
@@ -171,7 +191,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
           placeholder="Ex: 8 (para 8 copos)"
           placeholderTextColor={AppColors.placeholder}
         />
-
         <Text style={styles.label}>Frequência:</Text>
         <View style={styles.pickerWrapper}>
           <Picker
@@ -186,7 +205,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
             <Picker.Item label="Mensal" value="mensal" />
           </Picker>
         </View>
-
         <Text style={styles.label}>Duração (em dias):</Text>
         <TextInput
           style={styles.input}
@@ -196,7 +214,6 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
           placeholder="Ex: 7 (para 7 dias)"
           placeholderTextColor={AppColors.placeholder}
         />
-
         <TouchableOpacity style={styles.botao} onPress={criarDesafio}>
           <Text style={styles.botaoTexto}>Criar Desafio</Text>
         </TouchableOpacity>
