@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '../utils/uuidGenerator'; 
 
 export class TagNutricional {
   public readonly id: string;
@@ -6,7 +6,7 @@ export class TagNutricional {
   constructor(
     public nome: string
   ) {
-    this.id = uuidv4();
+    this.id = generateUUID();
   }
 }
 
@@ -17,6 +17,6 @@ export class ReceitaTag {
     public receitaId: string,
     public tagId: string
   ) {
-    this.id = uuidv4();
+    this.id = generateUUID();
   }
 }

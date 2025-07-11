@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '../utils/uuidGenerator'; 
 
 export class Notificacao {
   public readonly id: string;
@@ -10,6 +10,6 @@ export class Notificacao {
     public tipo: 'lembrete' | 'alerta' | 'novaMeta',
     public lida: boolean
   ) {
-    this.id = uuidv4();
+    this.id = generateUUID();
   }
 }

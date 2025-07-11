@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '../utils/uuidGenerator'; 
 
 export class Desafio {
   public readonly id: string;
@@ -15,6 +15,6 @@ export class Desafio {
     public ehPersonalizavel: boolean,
     public ativo: boolean
   ) {
-    this.id = uuidv4();
+    this.id = generateUUID();
   }
 }
