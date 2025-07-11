@@ -33,6 +33,10 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio,
 
   const [isParticipating, setIsParticipating] = useState(false);
 
+  if (!usuario) {
+    return null;
+  }
+
   useEffect(() => {
     if (desafio && usuario) {
       const alreadyParticipates = controller.usuarioJaParticipa(usuario.id, desafio.id);

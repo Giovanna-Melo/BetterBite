@@ -72,7 +72,7 @@ export default function Login({ navigation, setUsuario }: Props) {
         await AsyncStorage.setItem("usuarioLogado", JSON.stringify(usuario));
         setUsuario(usuario);
         Alert.alert("Bem-vindo", `Olá, ${usuario.nome}!`);
-        navigation.replace("Home");
+        navigation.replace("Welcome");
       } else {
         setErroLogin("Email ou senha incorretos.");
       }
@@ -147,7 +147,7 @@ export default function Login({ navigation, setUsuario }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+          Beatriz Costa • Giovanna Melo • Eloisa Santos • 2025
         </Text>
       </View>
     </View>

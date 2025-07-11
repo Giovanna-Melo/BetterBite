@@ -22,6 +22,10 @@ export default function ListaDesafios({ navigation, desafios, registros, usuario
   const [loading, setLoading] = useState(true);
   const controller = new DesafioController(desafios, registros, []); 
 
+  if (!usuario) {
+    return null;
+  }
+
   useEffect(() => {
     setTimeout(() => {
       setLoading(false);

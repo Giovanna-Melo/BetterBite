@@ -27,6 +27,10 @@ export default function EditarUsuarioScreen({
     usuario.restricoesAlimentares.join(", ")
   );
 
+  if (!usuario) {
+      return null;
+  }
+
   const salvarAlteracoes = async () => {
     try {
       const usuarioAtualizado = new Usuario(
