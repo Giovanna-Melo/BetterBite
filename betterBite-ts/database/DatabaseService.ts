@@ -1,5 +1,7 @@
 // database/DatabaseService.ts
 import * as SQLite from 'expo-sqlite';
+import { db as remoteDb } from '../firebase/firebaseConfig';
+import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore/lite';
 
 const schemaScript = require('./schema.js');
 const initialDataScript = require('./initial_data.js');
@@ -11,8 +13,8 @@ import { RegistroDesafio } from '../model/RegistroDesafio';
 import { TagNutricional } from '../model/TagNutricional';
 import { Usuario } from '../model/Usuario';
 import { generateUUID } from '../utils/uuidGenerator';
-
 const DATABASE_NAME = 'betterbite.db';
+
 
 class DatabaseService {
   private db!: SQLite.SQLiteDatabase;
@@ -39,6 +41,134 @@ class DatabaseService {
       throw error;
     }
   }
+
+public async syncUsuariosFromFirebase(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(remoteDb, 'usuarios'));
+    const usuarios = snapshot.docs.map(doc => doc.data() as Usuario);
+
+    for (const u of usuarios) {
+      const exists = await this.db.getFirstAsync<any>('SELECT 1 FROM usuarios WHERE id = ?', [u.id]);
+      if (exists) {
+        await this.db.runAsync(
+          `UPDATE usuarios SET nome = ?, email = ?, senhaHash = ?, dataNascimento = ?, genero = ?, peso = ?, altura = ?, restricoesAlimentares = ? WHERE id = ?;`,
+          [
+            u.nome,
+            u.email,
+            u.senhaHash,
+            u.dataNascimento,
+            u.genero,
+            u.peso,
+            u.altura,
+            JSON.stringify(u.restricoesAlimentares || []),
+            u.id
+          ]
+        );
+      } else {
+        await this.db.runAsync(
+          `INSERT INTO usuarios (id, nome, email, senhaHash, dataNascimento, genero, peso, altura, restricoesAlimentares)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          [
+            u.id,
+            u.nome,
+            u.email,
+            u.senhaHash,
+            u.dataNascimento,
+            u.genero,
+            u.peso,
+            u.altura,
+            JSON.stringify(u.restricoesAlimentares || [])
+          ]
+        );
+      }
+    }
+
+    console.log('Usuários sincronizados do Firestore para o SQLite.');
+  } catch (error) {
+    console.error('Erro ao sincronizar usuários:', error);
+  }
+}
+public async syncDesafiosFromFirebase(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(remoteDb, 'desafios'));
+    const desafios = snapshot.docs.map(doc => doc.data() as Desafio);
+
+    for (const d of desafios) {
+      const exists = await this.db.getFirstAsync<any>('SELECT 1 FROM desafios WHERE id = ?', [d.id]);
+      if (!exists) {
+        await this.db.runAsync(
+          `INSERT INTO desafios (id, nome, descricao, categoria, tipoMeta, unidade, valorMeta, frequencia, duracao, ehPersonalizavel, ativo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            d.id, d.nome, d.descricao, d.categoria, d.tipoMeta, d.unidade,
+            d.valorMeta, d.frequencia, d.duracao,
+            d.ehPersonalizavel ? 1 : 0, d.ativo ? 1 : 0
+          ]
+        );
+      }
+    }
+    console.log('Desafios sincronizados do Firebase.');
+  } catch (error) {
+    console.error('Erro ao sincronizar desafios:', error);
+  }
+}
+
+public async syncDesafiosUsuariosFromFirebase(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(remoteDb, 'desafiosUsuarios'));
+    const duList = snapshot.docs.map(doc => doc.data() as DesafioUsuario);
+
+    for (const du of duList) {
+      const exists = await this.db.getFirstAsync<any>(
+        'SELECT 1 FROM desafiosUsuarios WHERE id = ?;',
+        [du.id]
+      );
+
+      if (exists) {
+        /* --- atualiza registro local --- */
+        await this.db.runAsync(
+          `UPDATE desafiosUsuarios
+             SET usuarioId = ?,
+                 desafioId = ?,
+                 dataInicio = ?,
+                 dataFim    = ?,
+                 status     = ?,
+                 progresso  = ?
+           WHERE id = ?;`,
+          [
+            du.usuarioId,
+            du.desafioId,
+            du.dataInicio,          // já vem como ISO‑string
+            du.dataFim,
+            du.status,
+            du.progresso,
+            du.id
+          ]
+        );
+      } else {
+        /* --- insere novo registro --- */
+        await this.db.runAsync(
+          `INSERT INTO desafiosUsuarios
+             (id, usuarioId, desafioId, dataInicio, dataFim, status, progresso)
+           VALUES (?, ?, ?, ?, ?, ?, ?);`,
+          [
+            du.id,
+            du.usuarioId,
+            du.desafioId,
+            du.dataInicio,
+            du.dataFim,
+            du.status,
+            du.progresso
+          ]
+        );
+      }
+    }
+
+    console.log('Desafios‑usuarios sincronizados do Firestore para o SQLite.');
+  } catch (error) {
+    console.error('Erro ao sincronizar desafios‑usuarios:', error);
+  }
+}
 
   // ------------------------------- READ (GETTERS) -------------------------------
   public async getReceitas(): Promise<Receita[]> {
@@ -151,6 +281,15 @@ class DatabaseService {
         desafio.ehPersonalizavel ? 1 : 0, desafio.ativo ? 1 : 0
       ]
     );
+    try {
+      await addDoc(collection(remoteDb, 'desafios'), {
+        ...desafio,
+        criadoEm: new Date().toISOString()
+      });
+      console.log('Desafio salvo no Firestore.');
+    } catch (error) {
+      console.error('Erro ao salvar desafio no Firestore:', error);
+    }
   }
 
   public async addDesafioUsuario(du: DesafioUsuario): Promise<void> {
@@ -159,6 +298,21 @@ class DatabaseService {
        VALUES (?, ?, ?, ?, ?, ?, ?);`,
       [ du.id, du.usuarioId, du.desafioId, du.dataInicio.toISOString(), du.dataFim.toISOString(), du.status, du.progresso ]
     );
+    try {
+      await addDoc(collection(remoteDb, 'desafiosUsuarios'), {
+        id: du.id,
+        usuarioId: du.usuarioId,
+        desafioId: du.desafioId,
+        dataInicio: du.dataInicio.toISOString(),
+        dataFim: du.dataFim.toISOString(),
+        status: du.status,
+        progresso: du.progresso,
+        criadoEm: new Date().toISOString()
+      });
+      console.log('Desafio‑usuário salvo no Firestore.');
+    } catch (error) {
+      console.error('Erro ao salvar desafio‑usuário no Firestore:', error);
+    }
   }
 
   public async addRegistroDesafio(rd: RegistroDesafio): Promise<void> {
@@ -178,6 +332,24 @@ class DatabaseService {
         u.peso, u.altura, JSON.stringify(u.restricoesAlimentares)
       ]
     );
+    // Armazenamento remoto (Firestore)
+    try {
+      await addDoc(collection(remoteDb, 'usuarios'), {
+        id: u.id,
+        nome: u.nome,
+        email: u.email,
+        senhaHash: u.senhaHash,
+        dataNascimento: u.dataNascimento.toISOString(),
+        genero: u.genero,
+        peso: u.peso,
+        altura: u.altura,
+        restricoesAlimentares: u.restricoesAlimentares,
+        criadoEm: new Date().toISOString()
+      });
+      console.log('Usuário salvo remotamente no Firestore.');
+    } catch (error) {
+      console.error('Erro ao salvar usuário no Firestore:', error);
+    }
   }
 
   public async updateUsuario(u: Usuario): Promise<void> {
@@ -185,6 +357,28 @@ class DatabaseService {
         `UPDATE usuarios SET nome = ?, peso = ?, altura = ?, restricoesAlimentares = ? WHERE id = ?;`,
         [u.nome, u.peso, u.altura, JSON.stringify(u.restricoesAlimentares), u.id]
       );
+      // Atualiza no Firestore
+      try {
+        const usuariosRef = collection(remoteDb, 'usuarios');
+        const q = query(usuariosRef, where('id', '==', u.id));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const docRef = snapshot.docs[0].ref;
+          await updateDoc(docRef, {
+            nome: u.nome,
+            peso: u.peso,
+            altura: u.altura,
+            restricoesAlimentares: u.restricoesAlimentares,
+            atualizadoEm: new Date().toISOString()
+          });
+          console.log('Usuário atualizado no Firestore.');
+        } else {
+          console.warn('Usuário não encontrado no Firestore para atualização.');
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar usuário no Firestore:', error);
+      }
   }
 
   public async updateDesafioUsuarioProgresso(id: string, progresso: number): Promise<void> {
