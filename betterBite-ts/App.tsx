@@ -50,6 +50,9 @@ export default function App() {
     const setup = async () => {
       try {
         await dbService.initDatabase();
+        await dbService.syncUsuariosFromFirebase();
+        await dbService.syncDesafiosFromFirebase();
+        await dbService.syncDesafiosUsuariosFromFirebase();
         const userData = await AsyncStorage.getItem("usuarioLogado");
         if (userData) {
           const loggedUser = JSON.parse(userData);
