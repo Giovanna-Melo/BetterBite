@@ -1,54 +1,124 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Desafio } from '../model/Desafio';
 import { DesafioUsuario } from '../model/DesafioUsuario';
 import { Usuario } from '../model/Usuario';
-import { DesafioController } from '../controllers/DesafioController';
+import { dbService } from '../database/DatabaseService';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ListaDesafios'> & {
+  usuario: Usuario;
   desafios: Desafio[];
   registros: DesafioUsuario[];
-  usuario: Usuario;
   setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
 };
 
-export default function ListaDesafios({ navigation, desafios, registros, usuario, setDesafiosDoUsuarioState }: Props) {
+export default function ListaDesafios({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
-  const controller = new DesafioController(desafios, registros, []); 
+  const [desafios, setDesafios] = useState<Desafio[]>([]);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [participandoIds, setParticipandoIds] = useState<Set<string>>(new Set());
 
-  if (!usuario) {
-    return null;
-  }
+  const carregarDados = useCallback(async () => {
+    setLoading(true);
+    let user: Usuario | null = usuario;
 
-  useEffect(() => {
-    setTimeout(() => {
+    // Garante que temos o objeto do usuário antes de prosseguir
+    if (!user) {
+      try {
+        const userData = await AsyncStorage.getItem("usuarioLogado");
+        if (userData) {
+          user = JSON.parse(userData);
+          setUsuario(user);
+        } else {
+          // Se não há usuário, não há o que carregar. Redireciona para o login.
+          navigation.navigate("Login");
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.error("Falha ao buscar usuário no AsyncStorage", e);
+        setLoading(false);
+        return;
+      }
+    }
+  
+    try {
+      // Com o usuário garantido, busca os dados do banco
+      const todosDesafios = await dbService.getDesafios();
+      setDesafios(todosDesafios);
+
+      if (user) {
+        const desafiosDoUsuario = await dbService.getDesafiosByUsuarioId(user.id);
+        setParticipandoIds(new Set(desafiosDoUsuario.map(d => d.desafioId)));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar desafios:", error);
+      Alert.alert("Erro", "Não foi possível carregar os desafios.");
+    } finally {
       setLoading(false);
-    }, 500);
-  }, []);
+    }
+  }, [usuario, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+    }, [carregarDados])
+  );
+  
+  const handleParticipar = async (desafio: Desafio) => {
+    if (!usuario) {
+      Alert.alert("Erro", "Usuário não encontrado. Tente fazer login novamente.");
+      return;
+    }
+    if (participandoIds.has(desafio.id)) {
+      Alert.alert("Atenção", "Você já está participando deste desafio.");
+      return;
+    }
+
+    try {
+      const novoDesafioUsuario = new DesafioUsuario(
+        usuario.id,
+        desafio.id,
+        new Date(),
+        new Date(Date.now() + desafio.duracao * 24 * 60 * 60 * 1000),
+        'ativo',
+        0
+      );
+      await dbService.addDesafioUsuario(novoDesafioUsuario);
+      Alert.alert("Sucesso!", `Você agora está participando do desafio: ${desafio.nome}`);
+      carregarDados(); // Recarrega os dados para atualizar a UI
+    } catch (error) {
+      console.error("Erro ao participar do desafio:", error);
+      Alert.alert("Erro", "Não foi possível participar do desafio.");
+    }
+  };
 
   const renderDesafioItem = ({ item }: { item: Desafio }) => {
+    const jaParticipa = participandoIds.has(item.id);
     let desafioIcon: any = 'star-outline';
     switch(item.categoria) {
-            case 'introdução alimentar':
-              desafioIcon = 'leaf-outline';
-              break;
-            case 'refeições': 
-                desafioIcon = 'restaurant-outline';
-                break;
-            case 'bem-estar':
-                desafioIcon = 'happy-outline';
-                break;
-            case 'restrição':
-                desafioIcon = 'alert-circle-outline';
-                break;
-            default:
-                desafioIcon = 'star-outline';
+      case 'introdução alimentar':
+        desafioIcon = 'leaf-outline';
+        break;
+      case 'refeições': 
+        desafioIcon = 'restaurant-outline';
+        break;
+      case 'bem-estar':
+        desafioIcon = 'happy-outline';
+        break;
+      case 'restrição':
+        desafioIcon = 'alert-circle-outline';
+        break;
+      default:
+        desafioIcon = 'star-outline';
     }
 
     return (
@@ -66,10 +136,27 @@ export default function ListaDesafios({ navigation, desafios, registros, usuario
             Meta: {item.valorMeta} {item.unidade} por {item.frequencia} ({item.duracao} dias)
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={AppDimensions.iconSize.medium} color={AppColors.darkGray} />
+        <TouchableOpacity 
+          style={[styles.actionButton, jaParticipa && styles.disabledButton]} 
+          onPress={() => !jaParticipa && handleParticipar(item)}
+          disabled={jaParticipa}
+        >
+          <Ionicons name={jaParticipa ? "checkmark-done-outline" : "add-circle-outline"} size={AppDimensions.iconSize.medium} color={"#fff"} />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
+  
+  if (loading) {
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={AppColors.primary} />
+                <Text style={styles.loadingText}>Carregando...</Text>
+            </View>
+        </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -100,26 +187,19 @@ export default function ListaDesafios({ navigation, desafios, registros, usuario
       </View>
 
       <View style={styles.scrollableContentWrapper}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={AppColors.secondary} />
-            <Text style={styles.loadingText}>Carregando desafios...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={desafios}
-            keyExtractor={(item) => item.id}
-            renderItem={renderDesafioItem}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.listContentContainer}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyListContainer}>
-                <Ionicons name="sad-outline" size={AppDimensions.iconSize.xLarge + 10} color={AppColors.lightGray} />
-                <Text style={styles.emptyListText}>Nenhum desafio disponível no momento.</Text>
-              </View>
-            )}
-          />
-        )}
+        <FlatList
+          data={desafios}
+          keyExtractor={(item) => item.id}
+          renderItem={renderDesafioItem}
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={styles.listContentContainer}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyListContainer}>
+              <Ionicons name="sad-outline" size={AppDimensions.iconSize.xLarge + 10} color={AppColors.lightGray} />
+              <Text style={styles.emptyListText}>Nenhum desafio disponível no momento.</Text>
+            </View>
+          )}
+        />
       </View>
     </SafeAreaView>
   );
@@ -200,6 +280,15 @@ const styles = StyleSheet.create({
   desafioCardMeta: {
     fontSize: 12,
     color: AppColors.darkGray,
+  },
+  actionButton: {
+    padding: AppDimensions.spacing.small,
+    backgroundColor: AppColors.primary,
+    borderRadius: 50,
+    marginLeft: AppDimensions.spacing.small,
+  },
+  disabledButton: {
+    backgroundColor: AppColors.lightGray,
   },
   emptyListContainer: {
     flex: 1,

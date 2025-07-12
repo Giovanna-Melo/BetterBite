@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Image, Alert } from 'react-native';
-import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Desafio } from '../model/Desafio';
@@ -9,40 +10,130 @@ import { DesafioUsuario } from '../model/DesafioUsuario';
 import { RegistroDesafio } from '../model/RegistroDesafio';
 import { Usuario } from '../model/Usuario';
 import { DesafioController } from '../controllers/DesafioController';
-
+import { dbService } from '../database/DatabaseService';
 import { RootStackParamList } from '../App';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
-interface Props {
-  desafios: Desafio[];
-  registros: DesafioUsuario[];
-  registrosDesafio: RegistroDesafio[];
-  usuario: Usuario;
-  setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
-}
+type DetalhesDesafioProps = NativeStackScreenProps<RootStackParamList, 'DetalhesDesafio'>;
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'DetalhesDesafio'>;
+export default function DetalhesDesafio({ route, navigation }: DetalhesDesafioProps) {
+  const controller = new DesafioController();
+  const { idDesafio } = route.params;
 
-export default function DetalhesDesafio({ desafios, registros, registrosDesafio, usuario, setDesafiosDoUsuarioState }: Props) {
-  const route = useRoute<RouteProp<RootStackParamList, 'DetalhesDesafio'>>();
-  const navigation = useNavigation<NavigationProp>();
+  const [loading, setLoading] = useState(true);
+  const [desafio, setDesafio] = useState<Desafio | null>(null);
+  const [participacao, setParticipacao] = useState<DesafioUsuario | null>(null);
+  const [registros, setRegistros] = useState<RegistroDesafio[]>([]);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  
+  const carregarDados = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userData = await AsyncStorage.getItem("usuarioLogado");
+      if (!userData) {
+        navigation.navigate("Login");
+        return;
+      }
+      const loggedUser = JSON.parse(userData);
+      setUsuario(loggedUser);
 
-  const controller = new DesafioController(desafios, registros, registrosDesafio);
-  const desafio = controller.buscarPorId(route.params.idDesafio);
+      const desafioData = await controller.buscarPorId(idDesafio);
+      setDesafio(desafioData || null);
 
-  const [isParticipating, setIsParticipating] = useState(false);
+      if (desafioData && loggedUser) {
+        const participacaoData = await dbService.getDesafioUsuario(loggedUser.id, idDesafio);
+        setParticipacao(participacaoData || null);
 
-  if (!usuario) {
-    return null;
-  }
-
-  useEffect(() => {
-    if (desafio && usuario) {
-      const alreadyParticipates = controller.usuarioJaParticipa(usuario.id, desafio.id);
-      setIsParticipating(alreadyParticipates);
+        if (participacaoData) {
+          const registrosData = await controller.registrosDoDesafio(participacaoData.id);
+          setRegistros(registrosData);
+          await controller.calcularEAtualizarProgresso(participacaoData.id);
+          const participacaoAtualizada = await dbService.getDesafioUsuarioById(participacaoData.id);
+          setParticipacao(participacaoAtualizada ?? null);
+        } else {
+          setRegistros([]);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao carregar detalhes do desafio:", error);
+      Alert.alert("Erro", "Não foi possível carregar os dados do desafio.");
+    } finally {
+      setLoading(false);
     }
-  }, [desafio, usuario, registros]);
+  }, [idDesafio, navigation]);
+  
+  useFocusEffect(
+    useCallback(() => {
+        carregarDados();
+    }, [carregarDados])
+  );
+
+  const handleParticiparDesafio = async () => {
+    if (!usuario || !desafio) return;
+
+    if (participacao) {
+      Alert.alert('Informação', 'Você já está participando deste desafio!');
+      return;
+    }
+    
+    try {
+      const novoDesafioUsuario = new DesafioUsuario(
+        usuario.id,
+        desafio.id,
+        new Date(),
+        new Date(Date.now() + desafio.duracao * 24 * 60 * 60 * 1000),
+        'ativo',
+        0
+      );
+      await dbService.addDesafioUsuario(novoDesafioUsuario);
+      
+      setParticipacao(novoDesafioUsuario);
+      
+      Alert.alert('Sucesso', `Você está participando do desafio "${desafio.nome}"!`);
+      
+      carregarDados(); // Recarrega os dados para refletir a nova participação na UI
+    } catch (error) {
+       console.error("Erro ao participar do desafio:", error);
+       Alert.alert("Erro", "Não foi possível participar do desafio.");
+    }
+  };
+
+  const irParaCriarRegistro = () => {
+    if (participacao && desafio) {
+      navigation.navigate('CriarRegistroDesafio', {
+        idDesafioUsuario: participacao.id,
+        idDesafio: desafio.id,
+      });
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+        carregarDados();
+    }, [carregarDados])
+  );
+
+  // Agrupa os registros por data para exibição
+  const registrosPorData = Array.from(
+    registros.reduce((acc, reg) => {
+      const dataStr = new Date(reg.data).toISOString().split('T')[0];
+      const total = (acc.get(dataStr) || 0) + reg.consumo;
+      acc.set(dataStr, total);
+      return acc;
+    }, new Map<string, number>())
+  ).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.primary} />
+          <Text>Carregando detalhes...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!desafio) {
     return (
@@ -66,53 +157,11 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio,
     );
   }
 
-  const progressoGeral = controller.progressoPorDesafio(desafio.id);
-  const registrosLista = controller.registrosDoDesafio(desafio.id);
-
-  function irParaCriarRegistro() {
-    navigation.navigate('CriarRegistroDesafio', { idDesafio: desafio!.id });
-  }
-
-  const handleParticiparDesafio = () => {
-    if (!usuario) {
-      Alert.alert('Erro', 'Você precisa estar logado para participar de um desafio.');
-      return;
-    }
-    if (isParticipating) {
-      Alert.alert('Informação', 'Você já está participando deste desafio!');
-      return;
-    }
-
-    const novoDesafioUsuario = new DesafioUsuario(
-      usuario.id,
-      desafio.id,
-      new Date(),
-      new Date(Date.now() + desafio.duracao * 24 * 60 * 60 * 1000),
-      'ativo',
-      0
-    );
-
-    setDesafiosDoUsuarioState((prev) => [...prev, novoDesafioUsuario]);
-    setIsParticipating(true);
-    Alert.alert('Sucesso', `Você está participando do desafio "${desafio.nome}"!`);
-    navigation.navigate('Home');
-  };
-
-  const registrosPorData = Array.from(
-    registrosLista.reduce((acc, reg) => {
-      const dataStr = reg.data.toISOString().split('T')[0];
-      const total = (acc.get(dataStr) || 0) + reg.consumo;
-      acc.set(dataStr, total);
-      return acc;
-    }, new Map<string, number>())
-  ).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-
-  const registroUsuarioAtivo = registros.find(r => r.desafioId === desafio.id);
-  const dataInicioFormatada = registroUsuarioAtivo?.dataInicio
-    ? registroUsuarioAtivo.dataInicio.toLocaleDateString()
+  const dataInicioFormatada = participacao?.dataInicio
+    ? new Date(participacao.dataInicio).toLocaleDateString()
     : 'N/A';
-  const dataFimFormatada = registroUsuarioAtivo?.dataFim
-    ? registroUsuarioAtivo.dataFim.toLocaleDateString()
+  const dataFimFormatada = participacao?.dataFim
+    ? new Date(participacao.dataFim).toLocaleDateString()
     : 'N/A';
 
   return (
@@ -137,7 +186,7 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio,
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <Text style={styles.desc}>{desafio.descricao}</Text>
 
-        {!isParticipating ? (
+        {!participacao ? (
           <TouchableOpacity style={styles.participarButton} onPress={handleParticiparDesafio}>
             <Text style={styles.participarButtonText}>Participar do Desafio!</Text>
           </TouchableOpacity>
@@ -150,39 +199,31 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio,
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detalhes do Desafio</Text>
-          <Text style={styles.infoText}>
-            Categoria: {desafio.categoria}
-          </Text>
-          <Text style={styles.infoText}>
-            Meta: {desafio.valorMeta} {desafio.unidade} por {desafio.frequencia}
-          </Text>
-          <Text style={styles.infoText}>
-            Duração: {desafio.duracao} {desafio.frequencia === 'diario' ? 'dias' : desafio.frequencia === 'semanal' ? 'semanas' : 'meses'}
-          </Text>
-          <Text style={styles.infoText}>
-            Personalizável: {desafio.ehPersonalizavel ? 'Sim' : 'Não'}
-          </Text>
-          <Text style={styles.infoText}>
-            Status: {desafio.ativo ? 'Ativo' : 'Inativo'}
-          </Text>
+          <Text style={styles.infoText}>Categoria: {desafio.categoria}</Text>
+          <Text style={styles.infoText}>Meta: {desafio.valorMeta} {desafio.unidade} por {desafio.frequencia}</Text>
+          <Text style={styles.infoText}>Duração: {desafio.duracao} dias</Text>
+          <Text style={styles.infoText}>Personalizável: {desafio.ehPersonalizavel ? 'Sim' : 'Não'}</Text>
+          <Text style={styles.infoText}>Status: {desafio.ativo ? 'Ativo' : 'Inativo'}</Text>
         </View>
 
-        {registroUsuarioAtivo && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sua Participação</Text>
-            <Text style={styles.infoText}>Início: {dataInicioFormatada}</Text>
-            <Text style={styles.infoText}>Fim: {dataFimFormatada}</Text>
-            <Text style={styles.infoText}>Status: {registroUsuarioAtivo.status === 'ativo' ? 'Ativo' : registroUsuarioAtivo.status === 'completo' ? 'Concluído' : 'Falhou'}</Text>
-          </View>
+        {participacao && (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Sua Participação</Text>
+              <Text style={styles.infoText}>Início: {dataInicioFormatada}</Text>
+              <Text style={styles.infoText}>Fim: {dataFimFormatada}</Text>
+              <Text style={styles.infoText}>Status: {participacao.status}</Text>
+            </View>
+
+            <View style={styles.progressBox}>
+              <Text style={styles.progressText}>Progresso Geral:</Text>
+              <View style={styles.progressBarBackground}>
+                <View style={[styles.progressBarFill, { width: `${participacao.progresso}%` }]} />
+              </View>
+              <Text style={styles.progressPercent}>{participacao.progresso}%</Text>
+            </View>
+          </>
         )}
-
-        <View style={styles.progressBox}>
-          <Text style={styles.progressText}>Progresso Geral:</Text>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${progressoGeral}%` }]} />
-          </View>
-          <Text style={styles.progressPercent}>{progressoGeral}%</Text>
-        </View>
 
         <Text style={styles.subtitle}>Registros de Consumo por Dia:</Text>
         {registrosPorData.length === 0 ? (
@@ -191,17 +232,14 @@ export default function DetalhesDesafio({ desafios, registros, registrosDesafio,
           registrosPorData.map(([dataStr, totalConsumo]) => (
             <View key={dataStr} style={styles.registroItem}>
               <Text style={styles.registroText}>
-                {new Date(dataStr).toLocaleDateString()} - {totalConsumo} {desafio.unidade}
-              </Text>
-              <Text style={{ color: controller.metaDiariaAtingida(desafio.id, totalConsumo) ? AppColors.primary : AppColors.error }}>
-                {controller.metaDiariaAtingida(desafio.id, totalConsumo) ? '✅ Meta Atingida' : '❌ Meta Não Atingida'}
+                {new Date(`${dataStr}T12:00:00Z`).toLocaleDateString()} - {totalConsumo} {desafio.unidade}
               </Text>
             </View>
           ))
         )}
       </ScrollView>
 
-      {isParticipating && (
+      {participacao && participacao.status === 'ativo' && (
         <TouchableOpacity style={styles.fab} onPress={irParaCriarRegistro}>
           <Ionicons name="add" size={AppDimensions.iconSize.large} color="#fff" />
         </TouchableOpacity>
@@ -214,6 +252,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: AppColors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     padding: AppDimensions.spacing.medium,

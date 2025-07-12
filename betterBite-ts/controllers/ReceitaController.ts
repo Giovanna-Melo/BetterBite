@@ -1,42 +1,38 @@
 import { Receita } from '../model/Receita';
 import { TagNutricional } from '../model/TagNutricional';
-import { receitasMock } from '../mocks/receitaMock';
-import { tagsMock } from '../mocks/tagNutricionalMock'; 
+import { dbService } from '../database/DatabaseService';
 
 export class ReceitaController {
-  private receitas: Receita[];
-  private todasTags: TagNutricional[]; 
-
-  constructor() {
-    this.receitas = receitasMock;
-    this.todasTags = tagsMock;
+  
+  async listarTodas(): Promise<Receita[]> {
+    return await dbService.getReceitas();
   }
 
-  listarTodas(): Receita[] {
-    return this.receitas;
+  async listarTodasTagsDisponiveis(): Promise<TagNutricional[]> {
+    return await dbService.getTags();
   }
 
-  listarTodasTagsDisponiveis(): TagNutricional[] {
-    return this.todasTags;
+  async buscarNomeTagPorId(tagId: string): Promise<string | undefined> {
+    const tag = await dbService.getTagById(tagId);
+    return tag?.nome;
   }
 
-  buscarNomeTagPorId(tagId: string): string | undefined {
-    return this.todasTags.find(tag => tag.id === tagId)?.nome;
-  }
-
-  filtrarReceitas(texto: string, tagIdsSelecionadas: string[]): Receita[] {
+  async filtrarReceitas(texto: string, tagIdsSelecionadas: string[]): Promise<Receita[]> {
+    const todasReceitas = await this.listarTodas();
     const query = texto.toLowerCase();
 
-    return this.receitas.filter((r) => {
-      const matchesSearch =
+    const receitasFiltradasPorTexto = !query ? todasReceitas : todasReceitas.filter((r: Receita) =>
         r.nome.toLowerCase().includes(query) ||
-        r.ingredientes.some((ing) => ing.toLowerCase().includes(query));
+        (r.ingredientes && r.ingredientes.some((ing: string) => ing.toLowerCase().includes(query)))
+    );
 
-      const matchesTags =
-        tagIdsSelecionadas.length === 0 || 
-        tagIdsSelecionadas.every((selectedTagId) => r.tags.includes(selectedTagId)); 
+    if (tagIdsSelecionadas.length === 0) {
+        return receitasFiltradasPorTexto;
+    }
 
-      return matchesSearch && matchesTags;
-    });
+    const receitasComTags = await dbService.getReceitasByTags(tagIdsSelecionadas);
+    const idsReceitasComTags = new Set(receitasComTags.map(r => r.id));
+
+    return receitasFiltradasPorTexto.filter(r => idsReceitasComTags.has(r.id));
   }
 }
