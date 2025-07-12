@@ -1,64 +1,69 @@
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
-
-import { RegistroDesafio } from '../model/RegistroDesafio';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../App';
+import { RegistroDesafio } from '../model/RegistroDesafio';
+import { dbService } from '../database/DatabaseService';
+import { DesafioController } from '../controllers/DesafioController';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, keyof RootStackParamList>;
-  route: RouteProp<RootStackParamList, 'CheckinDesafio' | 'CriarRegistroDesafio'>;
-  registrosDesafio: RegistroDesafio[];
-  setRegistrosDesafio: React.Dispatch<React.SetStateAction<RegistroDesafio[]>>;
+  route: RouteProp<RootStackParamList, 'CriarRegistroDesafio'>;
 };
 
-export default function CriarRegistro({ navigation, route, registrosDesafio, setRegistrosDesafio }: Props) {
-  const { idDesafio } = route.params;
+export default function CriarRegistro({ navigation, route }: Props) {
+  const { idDesafioUsuario, idDesafio } = route.params;
 
-  const [data, setData] = useState('');
+  const [data, setData] = useState(new Date().toISOString().split('T')[0]); // Formato YYYY-MM-DD
   const [consumo, setConsumo] = useState('');
   const [observacao, setObservacao] = useState('');
 
   const validarData = (dateStr: string) => /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
 
-  const salvarRegistro = () => {
+  const salvarRegistro = async () => {
     if (!data.trim() || !consumo.trim()) {
-      Alert.alert('Erro', 'Preencha os campos obrigatórios.');
+      Alert.alert('Erro', 'Preencha os campos Data e Valor Consumido.');
       return;
     }
 
     if (!validarData(data.trim())) {
-      Alert.alert('Erro', 'Data inválida. Use o formato大全-MM-DD.');
+      Alert.alert('Erro', 'Data inválida. Use o formato YYYY-MM-DD.');
       return;
     }
 
     const valor = parseFloat(consumo);
     if (isNaN(valor) || valor < 0) {
-      Alert.alert('Erro', 'Consumo deve ser um número positivo.');
+      Alert.alert('Erro', 'Consumo deve ser um número não-negativo.');
       return;
     }
-
-    const novaData = new Date(data.trim());
+    
+    // Adiciona a hora atual para não ter problemas de fuso horário
+    const novaData = new Date(`${data.trim()}T12:00:00.000Z`);
 
     const novoRegistro = new RegistroDesafio(
-      idDesafio,
+      idDesafioUsuario,
       novaData,
       valor,
       observacao.trim() || undefined
     );
 
-    setRegistrosDesafio([...registrosDesafio, novoRegistro]);
-    Alert.alert('Sucesso', 'Registro salvo com sucesso!');
+    try {
+      await dbService.addRegistroDesafio(novoRegistro);
+      
+      // Recalcula o progresso após adicionar um novo registro
+      const controller = new DesafioController();
+      await controller.calcularEAtualizarProgresso(idDesafioUsuario);
 
-    setData('');
-    setConsumo('');
-    setObservacao('');
-
-    navigation.goBack();
+      Alert.alert('Sucesso', 'Registro salvo com sucesso!');
+      navigation.goBack();
+    } catch (error) {
+      console.error("Erro ao salvar registro:", error);
+      Alert.alert("Erro", "Não foi possível salvar o registro.");
+    }
   };
 
   return (

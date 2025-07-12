@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Image, ScrollView } from 'react-native';
 import { Receita } from '../model/Receita';
 import { ReceitaController } from '../controllers/ReceitaController';
@@ -14,22 +14,33 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Receitas'>;
 
 export default function ReceitasScreen({ navigation }: Props) {
   const controller = new ReceitaController();
-  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [receitasFiltradas, setReceitasFiltradas] = useState<Receita[]>([]);
   const [filtro, setFiltro] = useState<string>('');
   const [selecionada, setSelecionada] = useState<Receita | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [availableTags, setAvailableTags] = useState<TagNutricional[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  useEffect(() => {
+  const carregarDadosEFiltrar = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
-      const todas = controller.listarTodas();
-      setReceitas(todas);
-      setAvailableTags(controller.listarTodasTagsDisponiveis());
+    try {
+      if (availableTags.length === 0) {
+        const tags = await controller.listarTodasTagsDisponiveis();
+        setAvailableTags(tags);
+      }
+      const receitas = await controller.filtrarReceitas(filtro, selectedTagIds);
+      setReceitasFiltradas(receitas);
+    } catch (error) {
+      console.error("Erro ao carregar e filtrar receitas:", error);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [filtro, selectedTagIds, availableTags.length]);
+  
+  useEffect(() => {
+    carregarDadosEFiltrar();
+  }, [carregarDadosEFiltrar]);
+
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prevTagIds) =>
@@ -38,9 +49,7 @@ export default function ReceitasScreen({ navigation }: Props) {
         : [...prevTagIds, tagId]
     );
   };
-
-  const receitasFiltradas = controller.filtrarReceitas(filtro, selectedTagIds);
-
+  
   if (selecionada) {
     return (
       <SafeAreaView style={styles.safeArea}>

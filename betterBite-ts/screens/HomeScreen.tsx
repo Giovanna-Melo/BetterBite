@@ -1,30 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar, Alert, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, SafeAreaView, StatusBar } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import HomeSideBar from '../components/HomeSideBar';
 import NotificacaoCarousel from '../components/NotificacaoCarousel';
-// import DesafiosUsuarioList from '../components/DesafiosUsuarioList'; // Não precisamos mais deste componente separado
-
 import { Usuario } from '../model/Usuario';
 import { DesafioUsuario } from '../model/DesafioUsuario';
-import { Desafio } from '../model/Desafio'; // Importa Desafio para tipagem
+import { Desafio } from '../model/Desafio';
 import { notificacoesMock } from '../mocks/notificacaoMock';
+import { dbService } from '../database/DatabaseService';
 
-import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
+import { AppColors, AppDimensions } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
-  usuario: Usuario | null;
+  usuario: Usuario;
   setUsuario: (usuario: Usuario | null) => void;
-  desafiosDoUsuario: DesafioUsuario[];
-  desafiosGerais: Desafio[];
 };
 
-export default function HomeScreen({ navigation, usuario, setUsuario, desafiosDoUsuario, desafiosGerais }: Props) {
-  const [activeMenu, setActiveMenu] = useState<'desafios' | 'receitas' | null>(null);
+export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
+  const [desafiosDoUsuario, setDesafiosDoUsuario] = useState<DesafioUsuario[]>([]);
+  const [desafiosGerais, setDesafiosGerais] = useState<Desafio[]>([]);
+  const [activeMenu, setActiveMenu] = useState<'desafios' | 'receitas' | null>('desafios');
+  
+  const carregarDados = useCallback(async () => {
+    if (usuario) {
+      try {
+        const [gerais, doUsuario] = await Promise.all([
+          dbService.getDesafios(),
+          dbService.getDesafiosByUsuarioId(usuario.id)
+        ]);
+        setDesafiosGerais(gerais);
+        setDesafiosDoUsuario(doUsuario);
+      } catch(e) {
+        console.error("Erro ao carregar dados da Home:", e);
+      }
+    }
+  }, [usuario]);
+  
+  useFocusEffect(
+    useCallback(() => {
+        carregarDados();
+    }, [carregarDados])
+  );
 
   const notificacoesNaoLidas = notificacoesMock.filter(
     (notif: any) => notif.usuarioId === usuario?.id && !notif.lida
@@ -35,12 +56,10 @@ export default function HomeScreen({ navigation, usuario, setUsuario, desafiosDo
     setUsuario(null);
   };
 
-  // Se o usuário é nulo, a tela não renderiza para evitar erros
   if (!usuario) {
     return null;
   }
   
-  // O renderItem para a FlatList principal (que agora renderiza os desafios)
   const renderDesafioItem = ({ item }: { item: DesafioUsuario }) => {
     const desafioGeral = desafiosGerais.find(d => d.id === item.desafioId);
     let desafioIcon: any = 'star-outline';
@@ -74,7 +93,7 @@ export default function HomeScreen({ navigation, usuario, setUsuario, desafiosDo
         <View style={styles.desafioParticipandoInfo}>
           <Text style={styles.desafioParticipandoTitle}>{desafioGeral?.nome || 'Desafio Desconhecido'}</Text>
           <Text style={styles.desafioParticipandoProgress}>Progresso: {Math.round(item.progresso)}%</Text>
-          <Text style={styles.desafioParticipandoDays}>Status: {item.status === 'ativo' ? 'Ativo' : item.status === 'completo' ? 'Concluído' : 'Falhou'}</Text>
+          <Text style={styles.desafioParticipandoDays}>Status: {item.status}</Text>
         </View>
         <Ionicons name="chevron-forward" size={AppDimensions.iconSize.medium} color={AppColors.darkGray} />
       </TouchableOpacity>

@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Image,
-} from 'react-native';
+import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
@@ -18,32 +8,30 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Desafio } from '../model/Desafio';
 import { DesafioUsuario } from '../model/DesafioUsuario';
 import { Usuario } from '../model/Usuario';
+import { dbService } from '../database/DatabaseService';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'> & {
-  desafios: Desafio[];
-  setDesafios: React.Dispatch<React.SetStateAction<Desafio[]>>;
   usuario: Usuario;
-  setDesafiosDoUsuarioState: React.Dispatch<React.SetStateAction<DesafioUsuario[]>>;
+  onDesafioCriado: () => void;
 };
 
-export default function CriarDesafio({ navigation, desafios, setDesafios, usuario, setDesafiosDoUsuarioState }: Props) {
+export default function CriarDesafio({ navigation, usuario, onDesafioCriado }: Props) {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [tipoMeta, setTipoMeta] = useState('');
+  const [tipoMeta, setTipoMeta] = useState('quantidade');
   const [unidade, setUnidade] = useState('');
   const [valorMeta, setValorMeta] = useState('');
-  const [frequencia, setFrequencia] = useState('');
+  const [frequencia, setFrequencia] = useState('diario');
   const [duracao, setDuracao] = useState('');
-  const [ativo, setAtivo] = useState(true);
 
   if (!usuario) {
     return null;
   }
 
-  const criarDesafio = () => {
+  const criarDesafio = async () => {
     if (!nome.trim() || !descricao.trim() || !categoria.trim() || !tipoMeta.trim() || !unidade.trim() || !valorMeta.trim() || !frequencia.trim() || !duracao.trim()) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
@@ -57,33 +45,41 @@ export default function CriarDesafio({ navigation, desafios, setDesafios, usuari
       return;
     }
 
-    const novoDesafio = new Desafio(
-      nome.trim(),
-      descricao.trim(),
-      categoria,
-      tipoMeta,
-      unidade.trim(),
-      valorMetaNum,
-      frequencia,
-      duracaoNum,
-      true,
-      ativo
-    );
+    try {
+      const novoDesafio = new Desafio(
+        nome.trim(),
+        descricao.trim(),
+        categoria,
+        tipoMeta,
+        unidade.trim(),
+        valorMetaNum,
+        frequencia,
+        duracaoNum,
+        true, // Todo desafio criado pelo usuário é personalizável
+        true  // Todo desafio criado já começa ativo
+      );
 
-    setDesafios((prev) => [...prev, novoDesafio]);
+      await dbService.addDesafio(novoDesafio);
 
-    const novoDesafioUsuario = new DesafioUsuario(
-      usuario.id,
-      novoDesafio.id,
-      new Date(),
-      new Date(Date.now() + duracaoNum * 24 * 60 * 60 * 1000),
-      'ativo',
-      0
-    );
-    setDesafiosDoUsuarioState((prev) => [...prev, novoDesafioUsuario]);
+      const novoDesafioUsuario = new DesafioUsuario(
+        usuario.id,
+        novoDesafio.id,
+        new Date(),
+        new Date(Date.now() + duracaoNum * 24 * 60 * 60 * 1000),
+        'ativo',
+        0
+      );
+      
+      await dbService.addDesafioUsuario(novoDesafioUsuario);
 
-    Alert.alert('Sucesso', 'Desafio criado e você já está participando!');
-    navigation.goBack();
+      Alert.alert('Sucesso', 'Desafio criado e você já está participando!');
+      
+      onDesafioCriado(); // Callback para atualizar a lista de desafios no App.tsx
+      navigation.goBack();
+    } catch (error) {
+      console.error("Erro ao criar desafio:", error);
+      Alert.alert("Erro", "Não foi possível criar o desafio. Tente novamente.");
+    }
   };
 
   return (
