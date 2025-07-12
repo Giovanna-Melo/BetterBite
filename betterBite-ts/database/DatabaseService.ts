@@ -116,37 +116,16 @@ public async syncDesafiosFromFirebase(): Promise<void> {
 public async syncDesafiosUsuariosFromFirebase(): Promise<void> {
   try {
     const snapshot = await getDocs(collection(remoteDb, 'desafiosUsuarios'));
-    const duList = snapshot.docs.map(doc => doc.data() as DesafioUsuario);
+    const desafiosUsuarios = snapshot.docs.map(doc => doc.data() as DesafioUsuario);
 
-    for (const du of duList) {
+    for (const du of desafiosUsuarios) {
       const exists = await this.db.getFirstAsync<any>(
         'SELECT 1 FROM desafiosUsuarios WHERE id = ?;',
         [du.id]
       );
 
-      if (exists) {
-        /* --- atualiza registro local --- */
-        await this.db.runAsync(
-          `UPDATE desafiosUsuarios
-             SET usuarioId = ?,
-                 desafioId = ?,
-                 dataInicio = ?,
-                 dataFim    = ?,
-                 status     = ?,
-                 progresso  = ?
-           WHERE id = ?;`,
-          [
-            du.usuarioId,
-            du.desafioId,
-            du.dataInicio,          // já vem como ISO‑string
-            du.dataFim,
-            du.status,
-            du.progresso,
-            du.id
-          ]
-        );
-      } else {
-        /* --- insere novo registro --- */
+      if (!exists) {
+        /* ── Insere registro completo ───────────────────── */
         await this.db.runAsync(
           `INSERT INTO desafiosUsuarios
              (id, usuarioId, desafioId, dataInicio, dataFim, status, progresso)
@@ -155,18 +134,59 @@ public async syncDesafiosUsuariosFromFirebase(): Promise<void> {
             du.id,
             du.usuarioId,
             du.desafioId,
-            du.dataInicio,
-            du.dataFim,
+            new Date(du.dataInicio).toISOString(),
+            new Date(du.dataFim).toISOString(),
             du.status,
             du.progresso
           ]
         );
+      } else {
+        /* ── Atualiza **somente** o progresso (e status opcional) ── */
+        await this.db.runAsync(
+          `UPDATE desafiosUsuarios
+             SET progresso = ?, 
+                 status = ?
+           WHERE id = ?;`,
+          [du.progresso, du.status, du.id]
+        );
       }
     }
 
-    console.log('Desafios‑usuarios sincronizados do Firestore para o SQLite.');
+    console.log('Desafios‑usuarios sincronizados (progresso) do Firestore ➜ SQLite.');
   } catch (error) {
     console.error('Erro ao sincronizar desafios‑usuarios:', error);
+  }
+}
+
+public async syncRegistrosDesafioFromFirebase(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(remoteDb, 'registrosDesafio'));
+    const registros = snapshot.docs.map(doc => doc.data() as RegistroDesafio);
+
+    for (const r of registros) {
+      const row = await this.db.getFirstAsync<any>(
+        'SELECT 1 FROM registrosDesafio WHERE id = ?;',
+        [r.id]
+      );
+
+      if (!row) {
+        await this.db.runAsync(
+          `INSERT INTO registrosDesafio
+             (id, desafioUsuarioId, data, consumo, observacao)
+           VALUES (?, ?, ?, ?, ?);`,
+          [
+            r.id,
+            r.desafioUsuarioId,
+            new Date(r.data).toISOString(),
+            r.consumo,
+            r.observacao ?? null
+          ]
+        );
+      } 
+    }
+    console.log('Registros de desafio sincronizados do Firestore ➜ SQLite.');
+  } catch (error) {
+    console.error('Erro ao sincronizar registros de desafio:', error);
   }
 }
 
@@ -319,8 +339,21 @@ public async syncDesafiosUsuariosFromFirebase(): Promise<void> {
     await this.db.runAsync(
       `INSERT INTO registrosDesafio (id, desafioUsuarioId, data, consumo, observacao)
        VALUES (?, ?, ?, ?, ?);`,
-      [ generateUUID(), rd.desafioUsuarioId, rd.data.toISOString(), rd.consumo, rd.observacao ?? null ]
+      [ rd.id, rd.desafioUsuarioId, rd.data.toISOString(), rd.consumo, rd.observacao ?? null ]
     );
+    try {
+      await addDoc(collection(remoteDb, 'registrosDesafio'), {
+        id: rd.id,
+        desafioUsuarioId: rd.desafioUsuarioId,
+        data: rd.data.toISOString(),
+        consumo: rd.consumo,
+        observacao: rd.observacao ?? null,
+        criadoEm: new Date().toISOString()
+      });
+      console.log('Registro de desafio salvo remotamente no Firestore.');
+    } catch (error) {
+      console.error('Erro ao salvar registro de desafio no Firestore:', error);
+    }
   }
 
   public async addUsuario(u: Usuario): Promise<void> {
@@ -383,6 +416,20 @@ public async syncDesafiosUsuariosFromFirebase(): Promise<void> {
 
   public async updateDesafioUsuarioProgresso(id: string, progresso: number): Promise<void> {
       await this.db.runAsync('UPDATE desafiosUsuarios SET progresso = ? WHERE id = ?;', [progresso, id]);
+      try {
+        const q = query(collection(remoteDb, 'desafiosUsuarios'), where('id', '==', id));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const docRef = snapshot.docs[0].ref;
+          await updateDoc(docRef, { progresso });
+          console.log('Progresso do desafio do usuário atualizado no Firestore.');
+        } else {
+          console.warn('Documento do desafio do usuário não encontrado no Firestore para atualização.');
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar progresso no Firestore:', error);
+      }
   }
 }
 
