@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Image, ScrollView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Image, ScrollView, Alert } from 'react-native';
 import { Receita } from '../model/Receita';
 import { ReceitaController } from '../controllers/ReceitaController';
 import ReceitaCard from '../components/ReceitaCard';
@@ -32,15 +32,19 @@ export default function ReceitasScreen({ navigation }: Props) {
       setReceitasFiltradas(receitas);
     } catch (error) {
       console.error("Erro ao carregar e filtrar receitas:", error);
+      Alert.alert("Erro", "Não foi possível carregar as receitas.");
     } finally {
       setLoading(false);
     }
   }, [filtro, selectedTagIds, availableTags.length]);
-  
-  useEffect(() => {
-    carregarDadosEFiltrar();
-  }, [carregarDadosEFiltrar]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await carregarDadosEFiltrar();
+    };
+    
+    fetchData();
+  }, [carregarDadosEFiltrar]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prevTagIds) =>
@@ -151,11 +155,14 @@ export default function ReceitasScreen({ navigation }: Props) {
                   )}
                   {item.tags.length > 0 && (
                       <View style={styles.itemTagsContainer}>
-                          {item.tags.map(tagId => (
+                          {item.tags.map(tagId => {
+                            const tagName = availableTags.find(t => t.id === tagId)?.nome || '';
+                            return tagName ? (
                               <Text key={tagId} style={styles.itemTagText}>
-                                  {controller.buscarNomeTagPorId(tagId)}
+                                  {tagName}
                               </Text>
-                          ))}
+                            ) : null;
+                          })}
                       </View>
                   )}
                 </View>
