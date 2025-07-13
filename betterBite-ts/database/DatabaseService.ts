@@ -1,4 +1,3 @@
-// database/DatabaseService.ts
 import * as SQLite from 'expo-sqlite';
 import { db as remoteDb } from '../firebase/firebaseConfig';
 import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore/lite';
@@ -12,6 +11,7 @@ import { DesafioUsuario } from '../model/DesafioUsuario';
 import { RegistroDesafio } from '../model/RegistroDesafio';
 import { TagNutricional } from '../model/TagNutricional';
 import { Usuario } from '../model/Usuario';
+import { Notificacao } from '../model/Notificacao';
 import { generateUUID } from '../utils/uuidGenerator';
 const DATABASE_NAME = 'betterbite.db';
 
@@ -40,6 +40,13 @@ class DatabaseService {
       console.error('Erro ao inicializar o banco:', error);
       throw error;
     }
+  }
+
+  private async getDb(): Promise<SQLite.SQLiteDatabase> {
+    if (!this.db) {
+      await this.initDatabase();
+    }
+    return this.db!;
   }
 
 public async syncUsuariosFromFirebase(): Promise<void> {
@@ -187,6 +194,27 @@ public async syncRegistrosDesafioFromFirebase(): Promise<void> {
     console.log('Registros de desafio sincronizados do Firestore ➜ SQLite.');
   } catch (error) {
     console.error('Erro ao sincronizar registros de desafio:', error);
+  }
+}
+
+public async syncNotificacoesFromFirebase(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(remoteDb, 'notificacoes'));
+    const notificacoesRemotas = snapshot.docs.map(doc => doc.data() as any);
+
+    for (const n of notificacoesRemotas) {
+      const exists = await this.db.getFirstAsync<any>('SELECT 1 FROM notificacoes WHERE id = ?', [n.id]);
+      if (!exists) {
+        await this.db.runAsync(
+          `INSERT INTO notificacoes (id, usuarioId, texto, horarioAgendado, tipo, lida)
+            VALUES (?, ?, ?, ?, ?, ?);`,
+          [n.id, n.usuarioId, n.texto, n.horarioAgendado, n.tipo, n.lida ? 1 : 0]
+        );
+      }
+    }
+    console.log('Notificações sincronizadas do Firestore para o SQLite.');
+  } catch (error) {
+    console.error('Erro ao sincronizar notificações:', error);
   }
 }
 
@@ -430,6 +458,66 @@ public async syncRegistrosDesafioFromFirebase(): Promise<void> {
       } catch (error) {
         console.error('Erro ao atualizar progresso no Firestore:', error);
       }
+  }
+
+  public async addNotificacao(n: Notificacao): Promise<void> {    
+    await this.db.runAsync(
+      `INSERT INTO notificacoes (id, usuarioId, texto, horarioAgendado, tipo, lida)
+       VALUES (?, ?, ?, ?, ?, ?);`,
+      [n.id, n.usuarioId, n.texto, n.horarioAgendado.toISOString(), n.tipo, n.lida ? 1 : 0]
+    );
+
+    try {
+      await addDoc(collection(remoteDb, 'notificacoes'), {
+        id: n.id,
+        usuarioId: n.usuarioId,
+        texto: n.texto,
+        horarioAgendado: n.horarioAgendado.toISOString(),
+        tipo: n.tipo,
+        lida: n.lida,
+        criadoEm: new Date().toISOString()
+      });
+      console.log('Notificação salva remotamente no Firestore.');
+    } catch (error) {
+      console.error('Erro ao salvar notificação no Firestore:', error);
+    }
+  }
+
+  public async getNotificacoesParaHoje(usuarioId: string): Promise<Notificacao[]> {
+    const db = await this.getDb();
+
+    const hoje = new Date();
+    const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0); 
+    const fimDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59); 
+
+    const inicioDoDiaISO = inicioDoDia.toISOString();
+    const fimDoDiaISO = fimDoDia.toISOString();
+
+    const rows = await db.getAllAsync<any>(
+      `SELECT * FROM notificacoes 
+       WHERE usuarioId = ? 
+       AND horarioAgendado BETWEEN ? AND ?
+       ORDER BY horarioAgendado ASC;`, 
+      [usuarioId, inicioDoDiaISO, fimDoDiaISO]
+    );
+
+    return rows.map(r => ({ ...r, horarioAgendado: new Date(r.horarioAgendado), lida: !!r.lida }));
+  }
+
+
+  // REINICIAR DESAFIO
+  public async resetDesafioUsuario(desafioUsuarioId: string, novaDataFim: Date): Promise<void> {
+    await this.db.runAsync(
+      `DELETE FROM registrosDesafio WHERE desafioUsuarioId = ?;`,
+      [desafioUsuarioId]
+    );
+    await this.db.runAsync(
+      `UPDATE desafiosUsuarios 
+       SET status = 'ativo', progresso = 0, dataInicio = ?, dataFim = ?
+       WHERE id = ?;`,
+      [new Date().toISOString(), novaDataFim.toISOString(), desafioUsuarioId]
+    );
+    console.log(`Desafio ${desafioUsuarioId} reiniciado.`);
   }
 }
 

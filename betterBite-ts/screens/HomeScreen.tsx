@@ -11,7 +11,7 @@ import NotificacaoCarousel from '../components/NotificacaoCarousel';
 import { Usuario } from '../model/Usuario';
 import { DesafioUsuario } from '../model/DesafioUsuario';
 import { Desafio } from '../model/Desafio';
-import { notificacoesMock } from '../mocks/notificacaoMock';
+import { Notificacao } from '../model/Notificacao';
 import { dbService } from '../database/DatabaseService';
 
 import { AppColors, AppDimensions } from '../constants/AppStyles';
@@ -24,17 +24,20 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'> & {
 export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
   const [desafiosDoUsuario, setDesafiosDoUsuario] = useState<DesafioUsuario[]>([]);
   const [desafiosGerais, setDesafiosGerais] = useState<Desafio[]>([]);
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [activeMenu, setActiveMenu] = useState<'desafios' | 'receitas' | null>('desafios');
   
   const carregarDados = useCallback(async () => {
     if (usuario) {
       try {
-        const [gerais, doUsuario] = await Promise.all([
+        const [gerais, doUsuario, notificacoesDeHoje] = await Promise.all([
           dbService.getDesafios(),
-          dbService.getDesafiosByUsuarioId(usuario.id)
+          dbService.getDesafiosByUsuarioId(usuario.id),
+          dbService.getNotificacoesParaHoje(usuario.id),
         ]);
         setDesafiosGerais(gerais);
         setDesafiosDoUsuario(doUsuario);
+        setNotificacoes(notificacoesDeHoje);
       } catch(e) {
         console.error("Erro ao carregar dados da Home:", e);
       }
@@ -47,10 +50,6 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
     }, [carregarDados])
   );
 
-  const notificacoesNaoLidas = notificacoesMock.filter(
-    (notif: any) => notif.usuarioId === usuario?.id && !notif.lida
-  ).sort((a: any, b: any) => b.horarioAgendado.getTime() - a.horarioAgendado.getTime());
-
   const handleLogout = async () => {
     await AsyncStorage.removeItem("usuarioLogado");
     setUsuario(null);
@@ -60,25 +59,16 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
     return null;
   }
   
-  const renderDesafioItem = ({ item }: { item: DesafioUsuario }) => {
+    const renderDesafioItem = ({ item }: { item: DesafioUsuario }) => {
     const desafioGeral = desafiosGerais.find(d => d.id === item.desafioId);
     let desafioIcon: any = 'star-outline';
     if (desafioGeral) {
         switch(desafioGeral.categoria) {
-            case 'alimentacao':
-                desafioIcon = 'restaurant-outline';
-                break;
-            case 'exercicio':
-                desafioIcon = 'barbell-outline';
-                break;
-            case 'bem-estar':
-                desafioIcon = 'happy-outline';
-                break;
-            case 'restricao':
-                desafioIcon = 'alert-circle-outline';
-                break;
-            default:
-                desafioIcon = 'star-outline';
+            case 'alimentacao': desafioIcon = 'restaurant-outline'; break;
+            case 'exercicio': desafioIcon = 'barbell-outline'; break;
+            case 'bem-estar': desafioIcon = 'happy-outline'; break;
+            case 'restrição': desafioIcon = 'alert-circle-outline'; break;
+            default: desafioIcon = 'star-outline';
         }
     }
 
@@ -110,11 +100,10 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
             accessibilityLabel="BetterBite Logo"
           />
         </TouchableOpacity>
-        <View style={{ flex: 1 }} />
       </View>
       <Text style={styles.sectionTitle}>Olá, {usuario.nome.split(' ')[0]}!</Text>
       <Text style={styles.sectionSubtitle}>Seu guia para hábitos saudáveis.</Text>
-      <NotificacaoCarousel notificacoes={notificacoesNaoLidas} />
+      <NotificacaoCarousel notificacoes={notificacoes} /> 
       <Text style={styles.sectionTitle}>🚀 Meus Desafios</Text>
     </View>
   );
@@ -149,7 +138,7 @@ export default function HomeScreen({ navigation, usuario, setUsuario }: Props) {
           ListHeaderComponent={ListHeader}
           ListFooterComponent={ListFooter}
           style={styles.mainContent}
-          contentContainerStyle={styles.listContentContainer}
+          contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={true}
           ListEmptyComponent={() => (
             <View style={styles.emptyListContainer}>

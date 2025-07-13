@@ -45,6 +45,7 @@ export default function App() {
   const [desafios, setDesafios] = useState<Desafio[]>([]);
   const [registros, setRegistros] = useState<DesafioUsuario[]>([]);
   const [desafiosDoUsuario, setDesafiosDoUsuario] = useState<DesafioUsuario[]>([]);
+  const [sincronizado, setSincronizado] = useState(false);
 
   useEffect(() => {
     const setup = async () => {
