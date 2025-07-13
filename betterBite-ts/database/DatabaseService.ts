@@ -504,21 +504,4 @@ public async syncNotificacoesFromFirebase(): Promise<void> {
     return rows.map(r => ({ ...r, horarioAgendado: new Date(r.horarioAgendado), lida: !!r.lida }));
   }
 
-
-  // REINICIAR DESAFIO
-  public async resetDesafioUsuario(desafioUsuarioId: string, novaDataFim: Date): Promise<void> {
-    await this.db.runAsync(
-      `DELETE FROM registrosDesafio WHERE desafioUsuarioId = ?;`,
-      [desafioUsuarioId]
-    );
-    await this.db.runAsync(
-      `UPDATE desafiosUsuarios 
-       SET status = 'ativo', progresso = 0, dataInicio = ?, dataFim = ?
-       WHERE id = ?;`,
-      [new Date().toISOString(), novaDataFim.toISOString(), desafioUsuarioId]
-    );
-    console.log(`Desafio ${desafioUsuarioId} reiniciado.`);
-  }
-}
-
 export const dbService = new DatabaseService();
