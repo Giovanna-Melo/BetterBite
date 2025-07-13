@@ -10,6 +10,7 @@ import { DesafioUsuario } from '../model/DesafioUsuario';
 import { RegistroDesafio } from '../model/RegistroDesafio';
 import { Usuario } from '../model/Usuario';
 import { DesafioController } from '../controllers/DesafioController';
+import { NotificacaoController } from '../controllers/NotificacaoController';
 import { dbService } from '../database/DatabaseService';
 import { RootStackParamList } from '../App';
 
@@ -68,6 +69,8 @@ export default function DetalhesDesafio({ route, navigation }: DetalhesDesafioPr
         carregarDados();
     }, [carregarDados])
   );
+
+  const notificacaoController = new NotificacaoController();
 
   const handleParticiparDesafio = async () => {
     if (!usuario || !desafio) return;

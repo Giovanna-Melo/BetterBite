@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { Desafio } from '../model/Desafio';
 import { DesafioUsuario } from '../model/DesafioUsuario';
 import { Usuario } from '../model/Usuario';
 import { dbService } from '../database/DatabaseService';
+import { NotificacaoController } from '../controllers/NotificacaoController';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
@@ -25,6 +26,8 @@ export default function ListaDesafios({ navigation }: Props) {
   const [desafios, setDesafios] = useState<Desafio[]>([]);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [participandoIds, setParticipandoIds] = useState<Set<string>>(new Set());
+
+  const notificacaoController = new NotificacaoController();
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
@@ -73,6 +76,10 @@ export default function ListaDesafios({ navigation }: Props) {
     }, [carregarDados])
   );
   
+  useEffect(() => {
+    notificacaoController.registerForPushNotificationsAsync();
+  }, []);
+
   const handleParticipar = async (desafio: Desafio) => {
     if (!usuario) {
       Alert.alert("Erro", "Usuário não encontrado. Tente fazer login novamente.");
@@ -93,6 +100,13 @@ export default function ListaDesafios({ navigation }: Props) {
         0
       );
       await dbService.addDesafioUsuario(novoDesafioUsuario);
+      await notificacaoController.criarLembretesDeDesafio(
+        desafio.nome,
+        desafio.id,
+        usuario,
+        new Date(),
+        desafio.duracao
+      );
       Alert.alert("Sucesso!", `Você agora está participando do desafio: ${desafio.nome}`);
       carregarDados(); // Recarrega os dados para atualizar a UI
     } catch (error) {

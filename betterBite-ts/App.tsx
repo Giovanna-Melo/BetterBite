@@ -45,6 +45,7 @@ export default function App() {
   const [desafios, setDesafios] = useState<Desafio[]>([]);
   const [registros, setRegistros] = useState<DesafioUsuario[]>([]);
   const [desafiosDoUsuario, setDesafiosDoUsuario] = useState<DesafioUsuario[]>([]);
+  const [sincronizado, setSincronizado] = useState(false);
 
   useEffect(() => {
     const setup = async () => {
@@ -54,6 +55,7 @@ export default function App() {
         await dbService.syncDesafiosFromFirebase();
         await dbService.syncDesafiosUsuariosFromFirebase();
         await dbService.syncRegistrosDesafioFromFirebase();
+        await dbService.syncNotificacoesFromFirebase();
         const userData = await AsyncStorage.getItem("usuarioLogado");
         if (userData) {
           const loggedUser = JSON.parse(userData);

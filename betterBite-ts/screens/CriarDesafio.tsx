@@ -1,38 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Desafio } from '../model/Desafio';
 import { DesafioUsuario } from '../model/DesafioUsuario';
 import { Usuario } from '../model/Usuario';
 import { dbService } from '../database/DatabaseService';
+import { NotificacaoController } from '../controllers/NotificacaoController';
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'> & {
-  usuario: Usuario;
-  onDesafioCriado: () => void;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'CriarDesafio'>;
 
-export default function CriarDesafio({ navigation, usuario, onDesafioCriado }: Props) {
+export default function CriarDesafio({ navigation }: Props) {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [categoria, setCategoria] = useState('');
+  const [categoria, setCategoria] = useState('refeicoes');
   const [tipoMeta, setTipoMeta] = useState('quantidade');
   const [unidade, setUnidade] = useState('');
   const [valorMeta, setValorMeta] = useState('');
   const [frequencia, setFrequencia] = useState('diario');
   const [duracao, setDuracao] = useState('');
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  
+  const notificacaoController = new NotificacaoController();
 
-  if (!usuario) {
-    return null;
-  }
+  useEffect(() => {
+    const fetchUserAndPermissions = async () => {
+      const userData = await AsyncStorage.getItem("usuarioLogado");
+      if (userData) {
+        setUsuario(JSON.parse(userData));
+        await notificacaoController.registerForPushNotificationsAsync();
+      } else {
+        navigation.navigate("Login");
+      }
+    };
+    fetchUserAndPermissions();
+  }, [navigation]);
 
   const criarDesafio = async () => {
-    if (!nome.trim() || !descricao.trim() || !categoria.trim() || !tipoMeta.trim() || !unidade.trim() || !valorMeta.trim() || !frequencia.trim() || !duracao.trim()) {
+    if (!usuario) {
+      Alert.alert("Erro", "É necessário estar logado para criar um desafio.");
+      return;
+    }
+
+    if (!nome.trim() || !descricao.trim() || !unidade.trim() || !valorMeta.trim() || !duracao.trim()) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
     }
@@ -55,8 +71,8 @@ export default function CriarDesafio({ navigation, usuario, onDesafioCriado }: P
         valorMetaNum,
         frequencia,
         duracaoNum,
-        true, // Todo desafio criado pelo usuário é personalizável
-        true  // Todo desafio criado já começa ativo
+        true,
+        true 
       );
 
       await dbService.addDesafio(novoDesafio);
@@ -72,9 +88,15 @@ export default function CriarDesafio({ navigation, usuario, onDesafioCriado }: P
       
       await dbService.addDesafioUsuario(novoDesafioUsuario);
 
-      Alert.alert('Sucesso', 'Desafio criado e você já está participando!');
-      
-      onDesafioCriado(); // Callback para atualizar a lista de desafios no App.tsx
+      await notificacaoController.criarLembretesDeDesafio(
+        novoDesafio.nome,
+        novoDesafio.id,
+        usuario,
+        new Date(),
+        duracaoNum
+      );
+
+      Alert.alert('Sucesso', 'Desafio criado e lembretes agendados!');
       navigation.goBack();
     } catch (error) {
       console.error("Erro ao criar desafio:", error);
@@ -104,13 +126,7 @@ export default function CriarDesafio({ navigation, usuario, onDesafioCriado }: P
 
       <ScrollView contentContainerStyle={styles.formContainer}>
         <Text style={styles.label}>Nome do Desafio:</Text>
-        <TextInput
-          style={styles.input}
-          value={nome}
-          onChangeText={setNome}
-          placeholder="Ex: Desafio da Água"
-          placeholderTextColor={AppColors.placeholder}
-        />
+        <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Ex: Beber 2L de Água" />
 
         <Text style={styles.label}>Descrição:</Text>
         <TextInput
@@ -196,7 +212,6 @@ export default function CriarDesafio({ navigation, usuario, onDesafioCriado }: P
           placeholder="Ex: 7 (para 7 dias)"
           placeholderTextColor={AppColors.placeholder}
         />
-
         <TouchableOpacity style={styles.botao} onPress={criarDesafio}>
           <Text style={styles.botaoTexto}>Criar Desafio</Text>
         </TouchableOpacity>
