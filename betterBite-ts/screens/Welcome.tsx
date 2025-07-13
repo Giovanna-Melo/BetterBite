@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,24 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
+import { Usuario } from '../model/Usuario';
 
 const { width } = Dimensions.get("window");
 
-type Props = NativeStackScreenProps<RootStackParamList, "Welcome">;
+// Adicionar a prop 'usuario'
+type Props = NativeStackScreenProps<RootStackParamList, "Welcome"> & {
+  usuario: Usuario | null;
+};
 
-export default function Welcome({ navigation }: Props) {
+export default function Welcome({ navigation, usuario }: Props) {
+  // Redireciona se o usuário já estiver logado
+  useEffect(() => {
+    if (usuario) {
+      // Se o usuário existir, vai para a tela principal
+      navigation.replace("Home");
+    }
+  }, [usuario, navigation]); // Executa sempre que 'usuario' muda
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F6FFF6" />
@@ -48,7 +60,7 @@ export default function Welcome({ navigation }: Props) {
           <Text style={styles.loginPromptText}>Ainda não tem sua conta?</Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.replace("Login")}
+            onPress={() => navigation.navigate("Login")}
           >
             <Text style={styles.buttonText}>Comece já</Text>
           </TouchableOpacity>
@@ -57,7 +69,7 @@ export default function Welcome({ navigation }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+          Beatriz Costa • Giovanna Melo • Eloisa Santos • 2025
         </Text>
       </View>
     </View>
@@ -87,16 +99,7 @@ const styles = StyleSheet.create({
     color: "#2E7D32",
     fontWeight: "bold",
     marginBottom: 10,
-    fontFamily: "Poppins_700Bold",
-  },
-  subtitle: {
-    color: "#444",
-    fontSize: 16,
-    textAlign: "center",
-    paddingHorizontal: 8,
-    marginBottom: 8,
-    fontFamily: "Poppins_400Regular",
-    lineHeight: 24,
+    // fontFamily: "Poppins_700Bold",
   },
   secondary: {
     color: "#777",
@@ -104,7 +107,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 8,
     marginBottom: 0,
-    fontFamily: "Poppins_300Light",
+    // fontFamily: "Poppins_300Light",
   },
 
   scrollContent: {
@@ -165,7 +168,7 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#fff",
     alignItems: "center",
     paddingVertical: 12,
     borderTopWidth: 1,

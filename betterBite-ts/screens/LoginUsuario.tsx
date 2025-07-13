@@ -12,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
 import { Usuario } from "../model/Usuario";
-import { usuariosMock } from "../mocks/usuarioMock";
+import { dbService } from "../database/DatabaseService";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login"> & {
   setUsuario: (usuario: Usuario) => void;
@@ -25,7 +25,7 @@ export default function Login({ navigation, setUsuario }: Props) {
   const [erroSenha, setErroSenha] = useState("");
   const [erroLogin, setErroLogin] = useState("");
 
-  const senhaRef = useRef<TextInput>(null); // 👈 referência para o campo de senha
+  const senhaRef = useRef<TextInput>(null);
 
   const validarCampos = () => {
     let valido = true;
@@ -53,26 +53,13 @@ export default function Login({ navigation, setUsuario }: Props) {
     if (!validarCampos()) return;
 
     try {
-      const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
-      const usuariosAsync: Usuario[] = usuariosData
-        ? JSON.parse(usuariosData)
-        : [];
+      const usuario = await dbService.getUsuarioByEmail(email.trim());
 
-      let usuario = usuariosAsync.find(
-        (u) => u.email === email && u.senhaHash === senha
-      );
-
-      if (!usuario) {
-        usuario = usuariosMock.find(
-          (u) => u.email === email && u.senhaHash === senha
-        );
-      }
-
-      if (usuario) {
+      if (usuario && usuario.senhaHash === senha) {
         await AsyncStorage.setItem("usuarioLogado", JSON.stringify(usuario));
         setUsuario(usuario);
         Alert.alert("Bem-vindo", `Olá, ${usuario.nome}!`);
-        navigation.replace("Home");
+      //navigation.replace("Home");
       } else {
         setErroLogin("Email ou senha incorretos.");
       }
@@ -147,7 +134,7 @@ export default function Login({ navigation, setUsuario }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+          Beatriz Costa • Giovanna Melo • Eloisa Santos • 2025
         </Text>
       </View>
     </View>

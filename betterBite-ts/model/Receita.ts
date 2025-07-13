@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '../utils/uuidGenerator'; 
 
 export class Receita {
   public readonly id: string;
@@ -17,6 +17,6 @@ export class Receita {
     public fibrasPorPorcao: number,
     public tags: string[] = []
   ) {
-    this.id = uuidv4();
+    this.id = generateUUID();
   }
 }

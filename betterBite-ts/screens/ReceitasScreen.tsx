@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Image, ScrollView } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Image, ScrollView, Alert } from 'react-native';
 import { Receita } from '../model/Receita';
 import { ReceitaController } from '../controllers/ReceitaController';
 import ReceitaCard from '../components/ReceitaCard';
@@ -14,22 +14,37 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Receitas'>;
 
 export default function ReceitasScreen({ navigation }: Props) {
   const controller = new ReceitaController();
-  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [receitasFiltradas, setReceitasFiltradas] = useState<Receita[]>([]);
   const [filtro, setFiltro] = useState<string>('');
   const [selecionada, setSelecionada] = useState<Receita | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [availableTags, setAvailableTags] = useState<TagNutricional[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  useEffect(() => {
+  const carregarDadosEFiltrar = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
-      const todas = controller.listarTodas();
-      setReceitas(todas);
-      setAvailableTags(controller.listarTodasTagsDisponiveis());
+    try {
+      if (availableTags.length === 0) {
+        const tags = await controller.listarTodasTagsDisponiveis();
+        setAvailableTags(tags);
+      }
+      const receitas = await controller.filtrarReceitas(filtro, selectedTagIds);
+      setReceitasFiltradas(receitas);
+    } catch (error) {
+      console.error("Erro ao carregar e filtrar receitas:", error);
+      Alert.alert("Erro", "Não foi possível carregar as receitas.");
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [filtro, selectedTagIds, availableTags.length]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await carregarDadosEFiltrar();
+    };
+    
+    fetchData();
+  }, [carregarDadosEFiltrar]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prevTagIds) =>
@@ -38,9 +53,7 @@ export default function ReceitasScreen({ navigation }: Props) {
         : [...prevTagIds, tagId]
     );
   };
-
-  const receitasFiltradas = controller.filtrarReceitas(filtro, selectedTagIds);
-
+  
   if (selecionada) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -142,11 +155,14 @@ export default function ReceitasScreen({ navigation }: Props) {
                   )}
                   {item.tags.length > 0 && (
                       <View style={styles.itemTagsContainer}>
-                          {item.tags.map(tagId => (
+                          {item.tags.map(tagId => {
+                            const tagName = availableTags.find(t => t.id === tagId)?.nome || '';
+                            return tagName ? (
                               <Text key={tagId} style={styles.itemTagText}>
-                                  {controller.buscarNomeTagPorId(tagId)}
+                                  {tagName}
                               </Text>
-                          ))}
+                            ) : null;
+                          })}
                       </View>
                   )}
                 </View>

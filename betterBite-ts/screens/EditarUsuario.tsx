@@ -6,7 +6,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../App";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { usuariosMock } from "../mocks/usuarioMock";
+import { dbService } from "../database/DatabaseService";
 
 import { AppColors, AppDimensions, HeaderStyles } from '../constants/AppStyles';
 
@@ -15,11 +15,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "EditarUsuario"> & {
   setUsuario: (usuario: Usuario) => void;
 };
 
-export default function EditarUsuarioScreen({
-  navigation,
-  usuario,
-  setUsuario,
-}: Props) {
+export default function EditarUsuarioScreen({ navigation, usuario, setUsuario }: Props) {
   const [nome, setNome] = useState(usuario.nome);
   const [peso, setPeso] = useState(String(usuario.peso));
   const [altura, setAltura] = useState(String(usuario.altura));
@@ -27,42 +23,28 @@ export default function EditarUsuarioScreen({
     usuario.restricoesAlimentares.join(", ")
   );
 
+  if (!usuario) {
+      return null;
+  }
+
   const salvarAlteracoes = async () => {
     try {
-      const usuarioAtualizado = new Usuario(
-        nome.trim(),
-        usuario.email,
-        usuario.senhaHash,
-        usuario.dataNascimento,
-        usuario.genero,
-        parseFloat(peso),
-        parseFloat(altura),
-        restricoes.trim() ? restricoes.split(",").map((r) => r.trim()) : []
-      );
+      const usuarioAtualizado: Usuario = {
+        ...usuario,
+        nome: nome.trim(),
+        peso: parseFloat(peso),
+        altura: parseFloat(altura),
+        restricoesAlimentares: restricoes.trim() ? restricoes.split(",").map((r) => r.trim()) : [],
+      };
 
-      const usuariosData = await AsyncStorage.getItem("usuariosCadastrados");
-      let usuarios: Usuario[] = usuariosData ? JSON.parse(usuariosData) : [];
+      // Atualiza no banco de dados
+      await dbService.updateUsuario(usuarioAtualizado);
 
-      usuarios = usuarios.map((u) =>
-        u.email === usuario.email ? usuarioAtualizado : u
-      );
-
-      await AsyncStorage.setItem(
-        "usuariosCadastrados",
-        JSON.stringify(usuarios)
-      );
-      await AsyncStorage.setItem(
-        "usuarioLogado",
-        JSON.stringify(usuarioAtualizado)
-      );
+      // Atualiza no AsyncStorage para manter o estado de login
+      await AsyncStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
+      
+      // Atualiza o estado no App.tsx
       setUsuario(usuarioAtualizado);
-
-      const indexMock = usuariosMock.findIndex(
-        (u) => u.email === usuario.email
-      );
-      if (indexMock !== -1) {
-        usuariosMock[indexMock] = usuarioAtualizado;
-      }
 
       Alert.alert("Sucesso", "Dados atualizados!");
       navigation.goBack();

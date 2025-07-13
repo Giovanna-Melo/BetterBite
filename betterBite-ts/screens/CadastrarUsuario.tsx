@@ -15,6 +15,7 @@ import { Usuario } from "../model/Usuario";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { dbService } from '../database/DatabaseService';
 
 type Props = NativeStackScreenProps<RootStackParamList, "CadastrarUsuario"> & {
   setUsuario: (usuario: Usuario) => void;
@@ -29,7 +30,6 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
   const [peso, setPeso] = useState("");
   const [altura, setAltura] = useState("");
   const [restricoes, setRestricoes] = useState("");
-
   const [erros, setErros] = useState<{ [key: string]: string }>({});
 
   const validarCampos = () => {
@@ -52,40 +52,29 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
     if (!validarCampos()) return;
 
     try {
-      const novoUsuario = new Usuario(
-        nome,
-        email,
-        senha,
-        new Date(dataNascimento),
-        genero as "masculino" | "feminino" | "outro",
-        parseFloat(peso),
-        parseFloat(altura),
-        restricoes ? restricoes.split(",").map((r) => r.trim()) : []
-      );
-
-      const usuariosSalvos = await AsyncStorage.getItem("usuariosCadastrados");
-      const listaUsuarios: Usuario[] = usuariosSalvos
-        ? JSON.parse(usuariosSalvos)
-        : [];
-
-      const emailJaExiste = listaUsuarios.some(
-        (usuario) => usuario.email === email
-      );
+      const emailJaExiste = await dbService.getUsuarioByEmail(email.trim());
       if (emailJaExiste) {
         Alert.alert("Erro", "Já existe um usuário com este email.");
         return;
       }
 
-      listaUsuarios.push(novoUsuario);
-      await AsyncStorage.setItem(
-        "usuariosCadastrados",
-        JSON.stringify(listaUsuarios)
+      const novoUsuario = new Usuario(
+        nome,
+        email.trim(),
+        senha, // Lembrete: Hashear a senha em produção
+        new Date(dataNascimento),
+        genero as "masculino" | "feminino" | "outro",
+        parseFloat(peso),
+        parseFloat(altura),
+        restricoes ? restricoes.split(",").map((r: string) => r.trim()) : []
       );
+
+      await dbService.addUsuario(novoUsuario);
       await AsyncStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
       setUsuario(novoUsuario);
 
       Alert.alert("Sucesso", "Usuário cadastrado!");
-      navigation.replace("Home");
+    //navigation.replace("Home");
     } catch (e) {
       console.error("Erro ao salvar usuário:", e);
       Alert.alert("Erro", "Verifique os dados inseridos.");
@@ -215,7 +204,7 @@ export default function CadastroUsuario({ navigation, setUsuario }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Beatriz Costa • Giovanna Kailany • Eloisa Santos • 2025
+          Beatriz Costa • Giovanna Melo • Eloisa Santos • 2025
         </Text>
       </View>
     </SafeAreaView>
