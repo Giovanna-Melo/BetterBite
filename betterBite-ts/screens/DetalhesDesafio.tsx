@@ -72,41 +72,6 @@ export default function DetalhesDesafio({ route, navigation }: DetalhesDesafioPr
 
   const notificacaoController = new NotificacaoController();
 
-  const handleReiniciarDesafio = () => {
-    if (!participacao || !desafio || !usuario) return;
-
-    Alert.alert(
-      "Reiniciar Desafio",
-      `Tem a certeza de que quer reiniciar o desafio "${desafio.nome}"? Todo o progresso será apagado.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sim, Reiniciar",
-          onPress: async () => {
-            try {
-              const novaDataFim = new Date(Date.now() + desafio.duracao * 24 * 60 * 60 * 1000);
-              await dbService.resetDesafioUsuario(participacao.id, novaDataFim);
-              
-              await notificacaoController.criarLembretesDeDesafio(
-                desafio.nome,
-                desafio.id,
-                usuario,
-                new Date(),
-                desafio.duracao
-              );
-
-              Alert.alert("Sucesso", "Desafio reiniciado com novas metas e lembretes!");
-              carregarDados();
-            } catch (error) {
-              console.error("Erro ao reiniciar desafio:", error);
-              Alert.alert("Erro", "Não foi possível reiniciar o desafio.");
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleParticiparDesafio = async () => {
     if (!usuario || !desafio) return;
 
@@ -233,16 +198,6 @@ export default function DetalhesDesafio({ route, navigation }: DetalhesDesafioPr
             <Ionicons name="checkmark-circle-outline" size={AppDimensions.iconSize.large} color={AppColors.primary} />
             <Text style={styles.alreadyParticipatingText}>Você já está participando!</Text>
           </View>
-        )}
-
-        {participacao?.progresso === 100 && (
-          <TouchableOpacity 
-            style={[styles.participarButton, {backgroundColor: AppColors.accentBlue, marginTop: 15}]} 
-            onPress={handleReiniciarDesafio}
-          >
-            <Ionicons name="refresh-outline" size={20} color="#fff" style={{marginRight: 10}} />
-            <Text style={styles.participarButtonText}>Reiniciar Desafio</Text>
-          </TouchableOpacity>
         )}
 
         <View style={styles.section}>
