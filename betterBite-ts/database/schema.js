@@ -46,6 +46,16 @@ CREATE TABLE IF NOT EXISTS registrosDesafio (
   FOREIGN KEY (desafioUsuarioId) REFERENCES desafiosUsuarios(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS notificacoes (
+  id TEXT PRIMARY KEY NOT NULL,
+  usuarioId TEXT NOT NULL,
+  texto TEXT NOT NULL,
+  horarioAgendado TEXT NOT NULL,
+  tipo TEXT NOT NULL,
+  lida INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (usuarioId) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS receitas (
   id TEXT PRIMARY KEY NOT NULL,
   nome TEXT NOT NULL,
