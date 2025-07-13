@@ -503,5 +503,5 @@ public async syncNotificacoesFromFirebase(): Promise<void> {
 
     return rows.map(r => ({ ...r, horarioAgendado: new Date(r.horarioAgendado), lida: !!r.lida }));
   }
-
+}
 export const dbService = new DatabaseService();

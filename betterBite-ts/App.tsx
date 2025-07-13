@@ -55,6 +55,7 @@ export default function App() {
         await dbService.syncDesafiosFromFirebase();
         await dbService.syncDesafiosUsuariosFromFirebase();
         await dbService.syncRegistrosDesafioFromFirebase();
+        await dbService.syncNotificacoesFromFirebase();
         const userData = await AsyncStorage.getItem("usuarioLogado");
         if (userData) {
           const loggedUser = JSON.parse(userData);
